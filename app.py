@@ -4,8 +4,9 @@ from rich.columns import Columns
 from rich.panel import Panel
 from textual import events
 from textual.app import App
-from textual.widgets import ScrollView
+from textual.widgets import ScrollView, Placeholder
 from textual_inputs import TextInput
+from textual.reactive import Reactive
 
 
 class TPBSearch(App):
@@ -16,7 +17,10 @@ class TPBSearch(App):
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Submit")
+        await self.bind("b", "toggle_sidebar", "Toggle sidebar")
         await self.bind("q", "quit", "Quit")
+    
+    show_bar = Reactive(False)
 
     async def on_mount(self, event: events.Mount) -> None:
         """Create a grid with auto-arranging cells."""
@@ -25,6 +29,10 @@ class TPBSearch(App):
             name="code",
             title="Pirate Search",
         )
+
+        self.bar = Placeholder(name="left")
+        await self.view.dock(self.bar, edge="left", size=40, z=1)
+        self.bar.layout_offset_x = -40
 
         grid = await self.view.dock_grid(edge="left", name="left")
 
@@ -77,6 +85,13 @@ class TPBSearch(App):
         await self.client.close()
         await self.close_messages()
 
+    def watch_show_bar(self, show_bar: bool) -> None:
+        """Called when show_bar changes."""
+        self.bar.animate("layout_offset_x", 0 if show_bar else -40)
+
+    def action_toggle_sidebar(self) -> None:
+        """Called when user hits 'b' key."""
+        self.show_bar = not self.show_bar
 
 def main():
     TPBSearch.run()
