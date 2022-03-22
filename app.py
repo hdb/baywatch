@@ -87,8 +87,19 @@ class TPBSearch(App):
 
     async def action_submit(self):
         with self.console.status("Searching"):
+            #search
             search_term = self.text_input.value
             results = self.client.search(search_term)
+
+            # clear widgets
+            self.view.layout.docks.clear()
+            self.view.widgets.clear()
+
+            # readd widgets
+            await self.view.dock(self.text_input, edge='top', size=4)
+            await self.view.dock(self.bar, edge="left", size=40, z=1)
+
+            # build search results
             await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
 
     async def on_shutdown_request(self, event) -> None:
