@@ -60,7 +60,7 @@ class Bay():
         results = response.json()
 
         if results[0]['name'] == 'No results returned' and results[0]['id'] == '0':
-            return []
+            return [None]
 
         results = self.__formatResults(results)
 

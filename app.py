@@ -1,30 +1,79 @@
+from __future__ import annotations
+
 import bay
 
-from rich.columns import Columns
 from rich.panel import Panel
+from rich.console import RenderableType
+
 from textual import events
 from textual.app import App
-from textual.widgets import ScrollView, Placeholder
+from textual.widgets import Placeholder
+from textual.widget import Widget, Reactive
+
 from textual_inputs import TextInput
-from textual.reactive import Reactive
+from ck_widgets_lv import ListViewUo
+
+class SearchResult(Widget, can_focus=True):
+
+    has_focus: Reactive[bool] = Reactive(False)
+    mouse_over: Reactive[bool] = Reactive(False)
+    style: Reactive[str] = Reactive("")
+    height: Reactive[int | None] = Reactive(None)
+
+    def __init__(self, *, data: dict | None = None, name: str | None = None, height: int | None = None) -> None:
+        super().__init__(name=name)
+        self.height = height
+        self.data = data
+
+    def __rich_repr__(self) -> rich.repr.Result:
+        yield "name", self.name
+        yield "has_focus", self.has_focus, False
+        yield "mouse_over", self.mouse_over, False
+
+    def render(self) -> RenderableType:
+        if self.data is None: return self.renderEmpty()
+        return Panel(
+            f"[white]{self.data['category_name']}[/]\n[cyan]{self.data['magnet']}[/]",
+            title=f"[bold blue]{self.data['name']}[/]",
+            title_align="left",
+            border_style="magenta" if not self.has_focus else "yellow",
+            subtitle=f"[blue]{self.data['num_files']} file{'s' if int(self.data['num_files']) > 1 else ''}[/] | [blue]{self.data['size']}[/] | [green]{self.data['seeders']}[/] | [red]{self.data['leechers']}[/]",
+            subtitle_align="right",
+        )
+
+    def renderEmpty(self) -> RenderableType:
+        return Panel(
+            f"[bold red]No results[/]",
+            border_style="red",
+        )
+
+    async def on_focus(self, event: events.Focus) -> None:
+        self.has_focus = True
+
+    async def on_blur(self, event: events.Blur) -> None:
+        self.has_focus = False
+
+    async def on_enter(self, event: events.Enter) -> None:
+        self.mouse_over = True
+
+    async def on_leave(self, event: events.Leave) -> None:
+        self.mouse_over = False
 
 
 class TPBSearch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.columns = Columns([])
         self.client = bay.Bay(bay.MIRROR)
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Submit")
         await self.bind("b", "toggle_sidebar", "Toggle sidebar")
         await self.bind("q", "quit", "Quit")
-    
+
     show_bar = Reactive(False)
 
     async def on_mount(self, event: events.Mount) -> None:
         """Create a grid with auto-arranging cells."""
-        self.scroll_view = ScrollView(self.columns)
         self.text_input = TextInput(
             name="code",
             title="Pirate Search",
@@ -34,52 +83,13 @@ class TPBSearch(App):
         await self.view.dock(self.bar, edge="left", size=40, z=1)
         self.bar.layout_offset_x = -40
 
-        grid = await self.view.dock_grid(edge="left", name="left")
-
-        grid.add_column(fraction=1, name="center")
-
-        grid.add_row(fraction=1, name="top", min_size=3)
-        grid.add_row(fraction=10, name="middle")
-
-
-        grid.add_areas(
-            text_view="center,top",
-            scroll_view="center,middle",
-        )
-
-        grid.place(
-            text_view=self.text_input,
-            scroll_view=self.scroll_view,
-        )
+        await self.view.dock(self.text_input, edge='top', size=4)
 
     async def action_submit(self):
         with self.console.status("Searching"):
             search_term = self.text_input.value
             results = self.client.search(search_term)
-            # print(results)
-            results_renderables = []
-            if len(results) != 0:
-                for result in results:
-                    subtitle = f"[blue]{result['num_files']} file{'s' if int(result['num_files']) > 1 else ''}[/] | [blue]{result['size']}[/] | [green]{result['seeders']}[/] | [red]{result['leechers']}[/]"
-                    results_renderables.append(
-                        Panel(
-                            f"[white]{result['category_name']}[/]\n[cyan]{result['magnet']}[/]",
-                            title=f"[bold blue]{result['name']}[/]",
-                            title_align="left",
-                            border_style="magenta",
-                            subtitle=subtitle,
-                            subtitle_align="right",
-                        )
-                    )
-            else:
-                results_renderables.append(
-                    Panel(
-                        f"[bold red]No results[/]",
-                        border_style="red",
-                    )
-                )
-
-            await self.scroll_view.update(Columns(results_renderables))
+            await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
 
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
