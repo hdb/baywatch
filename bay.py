@@ -38,10 +38,17 @@ class Bay():
 
         for r in results:
             r['size'] = self.__fileSizeReadable(r['size'])
-            r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}'.format(r['info_hash'], r['name'])
+            r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}'.format(r['info_hash'], r['name']).replace(' ', '%20')
             r['added'] = datetime.strftime(datetime.fromtimestamp(int(r['added'])),'%Y-%m-%d %H:%M')
+            r['num_files'] = r['num_files'] if int(r['num_files']) > 0 else '1'
+            r['category_name'] = self.__get_key(int(r['category']), tpb_categories.categories)
 
         return results
+
+    def __get_key(self, val, source_dict):
+        for key, value in source_dict.items():
+            if val == value:
+                return key
 
     def search(self, query, category='All'):
         url = '{}/apibay/q.php'.format(self.mirror)
@@ -53,7 +60,7 @@ class Bay():
         results = response.json()
 
         if results[0]['name'] == 'No results returned' and results[0]['id'] == '0':
-            return None
+            return []
 
         results = self.__formatResults(results)
 
@@ -73,9 +80,11 @@ class Bay():
 
 
 def main():
+    from pprint import pprint
+
     bay = Bay(MIRROR)
     results = bay.search(sys.argv[1])
-    print(results)
+    pprint(results)
 
 if __name__ == '__main__':
     main()
