@@ -7,7 +7,7 @@ from rich.console import RenderableType
 
 from textual import events
 from textual.app import App
-from textual.widgets import Placeholder
+from textual.widgets import Placeholder, ButtonPressed
 from textual.widget import Widget, Reactive
 
 from textual_inputs import TextInput
@@ -66,17 +66,16 @@ class SearchResult(Widget, can_focus=True):
 
     async def on_key(self, event: events.Key) -> None:
         # await self.dispatch_key(event)
+        self.key = event.key
         logging.info(str(event))
         if event.key == 'k':
             pass
         elif event.key == 'p':
-            self.play()
+            event.prevent_default().stop()
+            await self.emit(ButtonPressed(self))
         elif event.key == 'c':
             self.copy_link()
 
-    def play(self): # on "p"
-        pass
-    
     def copy_link(self) -> None: # on "c"
         pyperclip.copy(self.data['magnet'])
 
@@ -126,6 +125,11 @@ class TPBSearch(App):
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
         await self.close_messages()
+
+    def handle_button_pressed(self, message: ButtonPressed) -> None:
+        if message.sender.key == 'p':
+            logging.info('parent received play command')
+
 
     def watch_show_bar(self, show_bar: bool) -> None:
         """Called when show_bar changes."""
