@@ -13,6 +13,7 @@ from textual.widget import Widget, Reactive
 from textual_inputs import TextInput
 from ck_widgets_lv import ListViewUo
 
+import pyperclip
 class SearchResult(Widget, can_focus=True):
 
     has_focus: Reactive[bool] = Reactive(False)
@@ -31,7 +32,7 @@ class SearchResult(Widget, can_focus=True):
         yield "mouse_over", self.mouse_over, False
 
     def render(self) -> RenderableType:
-        if self.data is None: return self.renderEmpty()
+        if self.data is None: return self.render_empty()
         return Panel(
             f"[white]{self.data['category_name']}[/]\n[cyan]{self.data['magnet']}[/]",
             title=f"[bold blue]{self.data['name']}[/]",
@@ -41,7 +42,7 @@ class SearchResult(Widget, can_focus=True):
             subtitle_align="right",
         )
 
-    def renderEmpty(self) -> RenderableType:
+    def render_empty(self) -> RenderableType:
         return Panel(
             f"[bold red]No results[/]",
             border_style="red",
@@ -58,6 +59,22 @@ class SearchResult(Widget, can_focus=True):
 
     async def on_leave(self, event: events.Leave) -> None:
         self.mouse_over = False
+
+    async def on_key(self, event: events.Key) -> None:
+        # await self.dispatch_key(event)
+        logging.info(str(event))
+        if event.key == 'k':
+            pass
+        elif event.key == 'p':
+            self.play()
+        elif event.key == 'c':
+            self.copy_link()
+
+    def play(self): # on "p"
+        pass
+    
+    def copy_link(self) -> None: # on "c"
+        pyperclip.copy(self.data['magnet'])
 
 
 class TPBSearch(App):
@@ -95,7 +112,7 @@ class TPBSearch(App):
             self.view.layout.docks.clear()
             self.view.widgets.clear()
 
-            # readd widgets
+            # re-add widgets
             await self.view.dock(self.text_input, edge='top', size=4)
             await self.view.dock(self.bar, edge="left", size=40, z=1)
 
