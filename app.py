@@ -14,6 +14,10 @@ from textual_inputs import TextInput
 from ck_widgets_lv import ListViewUo
 
 import pyperclip
+
+import logging
+logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
+
 class SearchResult(Widget, can_focus=True):
 
     has_focus: Reactive[bool] = Reactive(False)
