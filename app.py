@@ -11,7 +11,7 @@ from rich.text import Text
 
 from textual import events
 from textual.app import App
-from textual.widgets import ButtonPressed, Footer
+from textual.widgets import ButtonPressed, Footer, Placeholder
 from textual.widget import Widget, Reactive
 
 from textual_inputs import TextInput
@@ -168,6 +168,9 @@ class MirrorSidebar(Widget):
         self.get_response_time()
         return self.client
 
+class FilesSidebar(Placeholder):
+    def __pass(self):
+        pass
 
 class TPBSearch(App):
     def __init__(self, *args, **kwargs):
@@ -178,13 +181,15 @@ class TPBSearch(App):
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Search")
-        await self.bind("m", "toggle_sidebar", "Mirror info")
+        await self.bind("m", "toggle_mirror_sidebar", "Mirror info")
+        await self.bind("f", "toggle_files_sidebar", "Files info")
         await self.bind("r", "refresh_mirror", "Refresh mirror", show=False)
         await self.bind("p", "pass", "Play")
         await self.bind("c", "pass", "Copy link")
         await self.bind("q", "quit", "Quit")
 
-    show_bar = Reactive(False)
+    show_mirror_bar = Reactive(False)
+    show_files_bar = Reactive(False)
 
     async def on_mount(self, event: events.Mount) -> None:
         """Create a grid with auto-arranging cells."""
@@ -194,9 +199,14 @@ class TPBSearch(App):
         )
 
         await self.view.dock(Footer(), edge="bottom")
+
         self.mirror_sidebar = MirrorSidebar(name="mirror", client=self.client)
         await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
         self.mirror_sidebar.layout_offset_x = -SIDEBAR_SIZE
+
+        self.files_sidebar = FilesSidebar(name="files")
+        await self.view.dock(self.files_sidebar, edge="right", size=SIDEBAR_SIZE, z=2)
+        self.files_sidebar.layout_offset_x = SIDEBAR_SIZE
 
         await self.view.dock(self.text_input, edge='top', size=4)
 
@@ -219,7 +229,7 @@ class TPBSearch(App):
             await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
 
     async def action_refresh_mirror(self) -> None:
-        if self.show_bar:
+        if self.show_mirror_bar:
             self.client = await self.mirror_sidebar.update_mirror()
             self.config.add('mirror', self.client.mirror)
             logging.info('mirror updated to {}'.format(self.client.mirror))
@@ -238,14 +248,24 @@ class TPBSearch(App):
             command = self.config.data.command_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
             await self.shutdown_and_run(command.format(message.sender.data['magnet']))
 
-    def watch_show_bar(self, show_bar: bool) -> None:
-        """Called when show_bar changes."""
-        self.mirror_sidebar.animate("layout_offset_x", 0 if show_bar else -SIDEBAR_SIZE)
+    def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
+        """Called when show_mirror_bar changes."""
+        self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -SIDEBAR_SIZE)
 
-    def action_toggle_sidebar(self) -> None:
+    def action_toggle_mirror_sidebar(self) -> None:
         """Called when user hits 'b' key."""
-        if not self.show_bar: self.mirror_sidebar.get_response_time()
-        self.show_bar = not self.show_bar
+        if not self.show_mirror_bar: self.mirror_sidebar.get_response_time()
+        if self.show_files_bar: self.show_files_bar = False
+        self.show_mirror_bar = not self.show_mirror_bar
+        
+    def watch_show_files_bar(self, show_files_bar: bool) -> None:
+        """Called when show_files_bar changes."""
+        self.files_sidebar.animate("layout_offset_x", 0 if show_files_bar else SIDEBAR_SIZE)
+
+    def action_toggle_files_sidebar(self) -> None:
+        """Called when user hits 'b' key."""
+        if self.show_mirror_bar: self.show_mirror_bar = False
+        self.show_files_bar = not self.show_files_bar
 
     async def shutdown_and_run(self, command: str, detach: bool = False):
         command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
