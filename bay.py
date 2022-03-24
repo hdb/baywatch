@@ -3,6 +3,7 @@
 import requests
 from datetime import datetime
 import sys
+import json
 
 import tpb_categories
 
@@ -17,11 +18,14 @@ class Bay():
             self.mirror = self.updateMirror()
         else:
             self.mirror = default_mirror
-            if not requests.get(self.mirror).ok: self.mirror = self.updateMirror()
+            mirror_status = requests.get(self.mirror)
+            if not mirror_status.ok: self.mirror = self.updateMirror()
 
     def updateMirror(self):
         list_response = requests.get(self.mirror_list)
-        if not list_response.ok: return None
+        if not list_response.ok:
+            print('unable to connect to {} : status code {}'.format(self.mirror_list, list_response.status_code))
+            return None
         mirrors = list_response.text.splitlines()[3:]
         response_times = {m: requests.get(m).elapsed for m in mirrors}
         return min(response_times, key=response_times.get)
