@@ -1,0 +1,5 @@
+{
+    "mirror": "https://tpb23.ukpass.co",
+    "command": "peerflix '{}' --mpv -r -d -t",
+    "command_multifile": "peerflix '{}' --mpv -r -d -t -l"
+}

@@ -1,7 +1,9 @@
 from __future__ import annotations
+from typing import Any
 
 import bay
 
+import rich
 from rich.panel import Panel
 from rich.console import RenderableType
 
@@ -15,14 +17,48 @@ from ck_widgets_lv import ListViewUo
 
 import subprocess
 import pyperclip
+import json
 import logging
 
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
 
 
-DEFAULT_COMMAND = 'peerflix \'{}\' --mpv -r -d -t'
-DEFAULT_COMMAND_MULTIFILE = '{} -l'.format(DEFAULT_COMMAND)
+class Dict(dict):
+    """dot.notation access to dictionary attributes"""
+
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
+class Configuration(object):
+    """JSON configuration object"""
+
+    def __init__(self, file_path: str) -> None:
+        self.path = file_path
+        with open(self.path, 'r') as f:
+            self.data = Dict(json.load(f))
+
+    def add(self, key: str, value: str) -> bool:
+        try:
+            self.data[key] = value
+            self.__update()
+            return True
+        except:
+            return False
+
+    def delete(self, key: str) -> bool:
+        try:
+            del self.data[key]
+            self.__update()
+            return True
+        except:
+            return False
+
+    def __update(self) -> None:
+        with open(self.path, 'w') as f:
+            json.dump(self.data, f, indent=4)
 
 
 class SearchResult(Widget, can_focus=True):
@@ -72,7 +108,6 @@ class SearchResult(Widget, can_focus=True):
         self.mouse_over = False
 
     async def on_key(self, event: events.Key) -> None:
-        # await self.dispatch_key(event)
         self.key = event.key
         logging.info(str(event))
         if event.key == 'k':
@@ -90,7 +125,9 @@ class SearchResult(Widget, can_focus=True):
 class TPBSearch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.client = bay.Bay(bay.MIRROR)
+        config_path = 'conf.json'
+        self.config = Configuration(config_path)
+        self.client = bay.Bay(self.config.data.mirror)
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Submit")
@@ -137,7 +174,7 @@ class TPBSearch(App):
 
         # Play on 'p'
         if message.sender.key == 'p':
-            command = DEFAULT_COMMAND_MULTIFILE if int(message.sender.data['num_files']) > 1 else DEFAULT_COMMAND
+            command = self.config.data.command_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
             await self.shutdown_and_run(command.format(message.sender.data['magnet']))
 
     def watch_show_bar(self, show_bar: bool) -> None:
