@@ -125,13 +125,30 @@ class SearchResult(Widget, can_focus=True):
     def copy_link(self) -> None: # on "c"
         pyperclip.copy(self.data['magnet'])
 
-class Mirrors(Widget):
+class MirrorSidebar(Widget):
 
     def __init__(self, *, client: bay.Bay | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
         self.height = height
         self.client = client
         self.response_time = None
+        self.footer = self.build_footer()
+
+    def build_footer(self) -> Text:
+        footer = Text(
+            no_wrap=True,
+            overflow="ellipsis",
+            justify="left",
+            end="",
+        )
+
+        footer.append(Text.assemble(
+            (f" R ", "default on default"),
+            f" Refresh mirror ",
+            meta={"@click": f"app.press('{'r'}')", "key": 'r'},
+        ))
+
+        return footer
 
     def render(self) -> RenderableType:
         return Panel(
@@ -140,7 +157,7 @@ class Mirrors(Widget):
             ),
             title=f"[bold blue]Mirror[/]",
             border_style="blue",
-            subtitle="[yellow italic]R: Refresh mirror[/]"
+            subtitle=self.footer,
         )
 
     def get_response_time(self) -> None:
@@ -177,7 +194,7 @@ class TPBSearch(App):
         )
 
         await self.view.dock(Footer(), edge="bottom")
-        self.mirror_sidebar = Mirrors(name="mirror", client=self.client)
+        self.mirror_sidebar = MirrorSidebar(name="mirror", client=self.client)
         await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
         self.mirror_sidebar.layout_offset_x = -SIDEBAR_SIZE
 
