@@ -7,10 +7,11 @@ import rich
 from rich.panel import Panel
 from rich.align import Align
 from rich.console import RenderableType
+from rich.text import Text
 
 from textual import events
 from textual.app import App
-from textual.widgets import ButtonPressed
+from textual.widgets import ButtonPressed, Footer
 from textual.widget import Widget, Reactive
 
 from textual_inputs import TextInput
@@ -159,9 +160,11 @@ class TPBSearch(App):
         self.client = bay.Bay(self.config.data.mirror)
 
     async def on_load(self, event: events.Load):
-        await self.bind("enter", "submit", "Submit")
+        await self.bind("enter", "submit", "Search")
         await self.bind("m", "toggle_sidebar", "Mirror info")
-        await self.bind("r", "refresh_mirror", "Refresh mirror")
+        await self.bind("r", "refresh_mirror", "Refresh mirror", show=False)
+        await self.bind("p", "pass", "Play")
+        await self.bind("c", "pass", "Copy link")
         await self.bind("q", "quit", "Quit")
 
     show_bar = Reactive(False)
@@ -173,6 +176,7 @@ class TPBSearch(App):
             title="Pirate Search",
         )
 
+        await self.view.dock(Footer(), edge="bottom")
         self.mirror_sidebar = Mirrors(name="mirror", client=self.client)
         await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
         self.mirror_sidebar.layout_offset_x = -SIDEBAR_SIZE
@@ -192,6 +196,7 @@ class TPBSearch(App):
             # re-add widgets
             await self.view.dock(self.text_input, edge='top', size=4)
             await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
+            await self.view.dock(Footer(), edge="bottom")
 
             # build search results
             await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
@@ -201,6 +206,9 @@ class TPBSearch(App):
             self.client = await self.mirror_sidebar.update_mirror()
             self.config.add('mirror', self.client.mirror)
             logging.info('mirror updated to {}'.format(self.client.mirror))
+
+    async def action_pass(self) -> None:
+        pass
 
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
