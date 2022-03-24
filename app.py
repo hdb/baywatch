@@ -5,11 +5,12 @@ import bay
 
 import rich
 from rich.panel import Panel
+from rich.align import Align
 from rich.console import RenderableType
 
 from textual import events
 from textual.app import App
-from textual.widgets import Placeholder, ButtonPressed
+from textual.widgets import ButtonPressed
 from textual.widget import Widget, Reactive
 
 from textual_inputs import TextInput
@@ -22,6 +23,8 @@ import logging
 
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
+
+SIDEBAR_SIZE = 35
 
 
 class Dict(dict):
@@ -121,6 +124,32 @@ class SearchResult(Widget, can_focus=True):
     def copy_link(self) -> None: # on "c"
         pyperclip.copy(self.data['magnet'])
 
+class Mirrors(Widget):
+
+    def __init__(self, *, client: bay.Bay | None = None, name: str | None = None, height: int | None = None) -> None:
+        super().__init__(name=name)
+        self.height = height
+        self.client = client
+        self.response_time = None
+
+    def render(self) -> RenderableType:
+        return Panel(
+            Align.center(
+                f"[magenta]{self.client.mirror}[/]\n[blue]{self.response_time} sec[/]", vertical='middle'
+            ),
+            title=f"[bold blue]Mirror[/]",
+            border_style="blue",
+            subtitle="[yellow italic]R: Refresh mirror[/]"
+        )
+
+    def get_response_time(self) -> None:
+        self.response_time = self.client.getActiveMirrorResponse()
+
+    async def update_mirror(self) -> None:
+        self.client.updateMirror()
+        self.get_response_time()
+        return self.client
+
 
 class TPBSearch(App):
     def __init__(self, *args, **kwargs):
@@ -131,7 +160,8 @@ class TPBSearch(App):
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Submit")
-        await self.bind("b", "toggle_sidebar", "Toggle sidebar")
+        await self.bind("m", "toggle_sidebar", "Mirror info")
+        await self.bind("r", "refresh_mirror", "Refresh mirror")
         await self.bind("q", "quit", "Quit")
 
     show_bar = Reactive(False)
@@ -143,9 +173,9 @@ class TPBSearch(App):
             title="Pirate Search",
         )
 
-        self.bar = Placeholder(name="left")
-        await self.view.dock(self.bar, edge="left", size=40, z=1)
-        self.bar.layout_offset_x = -40
+        self.mirror_sidebar = Mirrors(name="mirror", client=self.client)
+        await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
+        self.mirror_sidebar.layout_offset_x = -SIDEBAR_SIZE
 
         await self.view.dock(self.text_input, edge='top', size=4)
 
@@ -161,10 +191,16 @@ class TPBSearch(App):
 
             # re-add widgets
             await self.view.dock(self.text_input, edge='top', size=4)
-            await self.view.dock(self.bar, edge="left", size=40, z=1)
+            await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
 
             # build search results
             await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
+
+    async def action_refresh_mirror(self) -> None:
+        if self.show_bar:
+            self.client = await self.mirror_sidebar.update_mirror()
+            self.config.add('mirror', self.client.mirror)
+            logging.info('mirror updated to {}'.format(self.client.mirror))
 
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
@@ -179,10 +215,11 @@ class TPBSearch(App):
 
     def watch_show_bar(self, show_bar: bool) -> None:
         """Called when show_bar changes."""
-        self.bar.animate("layout_offset_x", 0 if show_bar else -40)
+        self.mirror_sidebar.animate("layout_offset_x", 0 if show_bar else -SIDEBAR_SIZE)
 
     def action_toggle_sidebar(self) -> None:
         """Called when user hits 'b' key."""
+        if not self.show_bar: self.mirror_sidebar.get_response_time()
         self.show_bar = not self.show_bar
 
     async def shutdown_and_run(self, command: str, detach: bool = False):

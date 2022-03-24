@@ -12,7 +12,8 @@ MIRROR = 'https://tpb23.ukpass.co'
 class Bay():
 
     def __init__(self, default_mirror=None):
-        self.mirror_list = 'https://proxy-bay.app/list.txt'
+        self.mirror_list_url = 'https://proxy-bay.app/list.txt'
+        self.available_mirrors = self.getMirrorList()
 
         if default_mirror is None:
             self.mirror = self.updateMirror()
@@ -21,13 +22,24 @@ class Bay():
             mirror_status = requests.get(self.mirror)
             if not mirror_status.ok: self.mirror = self.updateMirror()
 
-    def updateMirror(self):
-        list_response = requests.get(self.mirror_list)
+    def getMirrorList(self):
+        list_response = requests.get(self.mirror_list_url)
         if not list_response.ok:
-            print('unable to connect to {} : status code {}'.format(self.mirror_list, list_response.status_code))
+            print('unable to connect to {} : status code {}'.format(self.mirror_list_url, list_response.status_code))
             return None
-        mirrors = list_response.text.splitlines()[3:]
-        response_times = {m: requests.get(m).elapsed for m in mirrors}
+        return list_response.text.splitlines()[3:]
+
+    def getMirrorResponses(self, update_list=True):
+        if update_list: self.available_mirrors = self.getMirrorList()
+        response_times = {m: requests.get(m).elapsed for m in self.available_mirrors}
+        return dict(sorted(response_times.items(), key=lambda t: t[1]))
+
+    def getActiveMirrorResponse(self):
+        """Return time in seconds (to the millisecond)."""
+        return '{0:.3f}'.format(requests.get(self.mirror).elapsed.microseconds / 1000000)
+
+    def updateMirror(self, update_list=True):
+        response_times = self.getMirrorResponses(update_list=update_list)
         return min(response_times, key=response_times.get)
 
     def __fileSizeReadable(self, num, suffix='B'):
