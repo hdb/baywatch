@@ -13,10 +13,17 @@ from textual.widget import Widget, Reactive
 from textual_inputs import TextInput
 from ck_widgets_lv import ListViewUo
 
+import subprocess
 import pyperclip
-
 import logging
+
+
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
+
+
+DEFAULT_COMMAND = 'peerflix \'{}\' --mpv -r -d -t'
+DEFAULT_COMMAND_MULTIFILE = '{} -l'.format(DEFAULT_COMMAND)
+
 
 class SearchResult(Widget, can_focus=True):
 
@@ -126,10 +133,12 @@ class TPBSearch(App):
         await self.client.close()
         await self.close_messages()
 
-    def handle_button_pressed(self, message: ButtonPressed) -> None:
-        if message.sender.key == 'p':
-            logging.info('parent received play command')
+    async def handle_button_pressed(self, message: ButtonPressed) -> None:
 
+        # Play on 'p'
+        if message.sender.key == 'p':
+            command = DEFAULT_COMMAND_MULTIFILE if int(message.sender.data['num_files']) > 1 else DEFAULT_COMMAND
+            await self.shutdown_and_run(command.format(message.sender.data['magnet']))
 
     def watch_show_bar(self, show_bar: bool) -> None:
         """Called when show_bar changes."""
@@ -138,6 +147,12 @@ class TPBSearch(App):
     def action_toggle_sidebar(self) -> None:
         """Called when user hits 'b' key."""
         self.show_bar = not self.show_bar
+
+    async def shutdown_and_run(self, command: str, detach: bool = False):
+        command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
+        logging.info('running {}'.format(command))
+        subprocess.run(command, shell=True)
+        await self.shutdown()
 
 def main():
     TPBSearch.run()
