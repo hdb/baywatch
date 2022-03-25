@@ -166,9 +166,10 @@ class MirrorSidebar(Widget):
     def get_response_time(self) -> None:
         self.response_time = self.client.getActiveMirrorResponse()
 
-    async def update_mirror(self) -> None:
-        self.client.updateMirror()
-        self.get_response_time()
+    async def update_mirror(self) -> bay.Bay:
+        with self.console.status('Getting mirrors'):
+            self.client.updateMirror()
+            self.get_response_time()
         return self.client
 
 class FilesSidebar(Widget):
@@ -266,7 +267,7 @@ class TPBSearch(App):
             logging.info('mirror updated to {}'.format(self.client.mirror))
 
     async def action_pass(self) -> None:
-        pass
+        return None
 
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
@@ -290,7 +291,7 @@ class TPBSearch(App):
         self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -MIRROR_SIDEBAR_SIZE)
 
     def action_toggle_mirror_sidebar(self) -> None:
-        """Called when user hits 'b' key."""
+        """Called when user hits 'm' key."""
         if not self.show_mirror_bar: self.mirror_sidebar.get_response_time()
         if self.show_files_bar: self.show_files_bar = False
         self.show_mirror_bar = not self.show_mirror_bar
@@ -300,7 +301,7 @@ class TPBSearch(App):
         self.files_sidebar.animate("layout_offset_x", 0 if show_files_bar else FILE_SIDEBAR_SIZE)
 
     def action_toggle_files_sidebar(self) -> None:
-        """Called when user hits 'b' key."""
+        """Called when user hits 'f' key."""
         if self.files_sidebar.data is None: return None
         if self.show_mirror_bar: self.show_mirror_bar = False
         self.show_files_bar = not self.show_files_bar
