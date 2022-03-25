@@ -87,8 +87,12 @@ class Bay():
         response = requests.get(url, params={'id': id_no})
         results = response.json()
         for i,r in enumerate(results):
-            r['name'] = r['name']['0']
-            r['size'] = self.__fileSizeReadable(r['size']['0'])
+            try:
+                r['name'] = r['name']['0']
+                r['size'] = self.__fileSizeReadable(r['size']['0'])
+            except:
+                r['name'] = r['name'][0]
+                r['size'] = self.__fileSizeReadable(r['size'][0])
             # r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}&so={}'.format(init_data['info_hash'], r['name'], i) # 'so=' not handled by clients?
         return results
 
