@@ -82,16 +82,15 @@ class Bay():
 
         return results
 
-    def filenames(self, init_data):
+    def filenames(self, id_no):
         url = '{}/apibay/f.php'.format(self.mirror)
-        response = requests.get(url, params={'id': init_data['id']})
+        response = requests.get(url, params={'id': id_no})
         results = response.json()
         for i,r in enumerate(results):
             r['name'] = r['name']['0']
             r['size'] = self.__fileSizeReadable(r['size']['0'])
             # r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}&so={}'.format(init_data['info_hash'], r['name'], i) # 'so=' not handled by clients?
-        init_data['files'] = results
-        return init_data
+        return results
 
     def description(self, id_no):
         url = '{}/apibay/t.php'.format(self.mirror)

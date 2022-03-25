@@ -8,6 +8,7 @@ from rich.panel import Panel
 from rich.align import Align
 from rich.console import RenderableType
 from rich.text import Text
+from rich.table import Table
 
 from textual import events
 from textual.app import App
@@ -25,7 +26,8 @@ import logging
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
 
-SIDEBAR_SIZE = 35
+MIRROR_SIDEBAR_SIZE = 35
+FILE_SIDEBAR_SIZE = 80
 
 
 class Dict(dict):
@@ -114,8 +116,9 @@ class SearchResult(Widget, can_focus=True):
     async def on_key(self, event: events.Key) -> None:
         self.key = event.key
         logging.info(str(event))
-        if event.key == 'k':
-            pass
+        if event.key == 'f':
+            event.prevent_default().stop()
+            await self.emit(ButtonPressed(self))
         elif event.key == 'p':
             event.prevent_default().stop()
             await self.emit(ButtonPressed(self))
@@ -168,9 +171,36 @@ class MirrorSidebar(Widget):
         self.get_response_time()
         return self.client
 
-class FilesSidebar(Placeholder):
-    def __pass(self):
-        pass
+class FilesSidebar(Widget):
+    def __init__(self, *, data: dict | None = None, name: str | None = None, height: int | None = None) -> None:
+        super().__init__(name=name)
+        self.height = height
+        self.data = data
+
+    def render(self) -> RenderableType:
+        if self.data is None: return self.render_empty()
+        return Panel(
+            Align(self.build_table(), vertical='middle'),
+            border_style="blue",
+            title='Files',
+        )
+
+    def render_empty(self) -> RenderableType:
+        return Panel(
+            "",
+            border_style="red",
+        )
+
+    def update_data(self, data) -> None:
+        self.data = data
+
+    def build_table(self) -> Table:
+        table = Table('[blue]#', '[blue]Filename', '[blue]Size', box=None, show_lines=True, min_width=FILE_SIDEBAR_SIZE)
+        for i, row in enumerate(self.data):
+            color = 'blue' if i%2==1 else 'white'
+            table.add_row(str(i+1), row['name'], row['size'], style=color)
+        return table
+
 
 class TPBSearch(App):
     def __init__(self, *args, **kwargs):
@@ -201,12 +231,12 @@ class TPBSearch(App):
         await self.view.dock(Footer(), edge="bottom")
 
         self.mirror_sidebar = MirrorSidebar(name="mirror", client=self.client)
-        await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
-        self.mirror_sidebar.layout_offset_x = -SIDEBAR_SIZE
+        await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
+        self.mirror_sidebar.layout_offset_x = -MIRROR_SIDEBAR_SIZE
 
         self.files_sidebar = FilesSidebar(name="files")
-        await self.view.dock(self.files_sidebar, edge="right", size=SIDEBAR_SIZE, z=2)
-        self.files_sidebar.layout_offset_x = SIDEBAR_SIZE
+        await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
+        self.files_sidebar.layout_offset_x = FILE_SIDEBAR_SIZE
 
         await self.view.dock(self.text_input, edge='top', size=4)
 
@@ -222,7 +252,8 @@ class TPBSearch(App):
 
             # re-add widgets
             await self.view.dock(self.text_input, edge='top', size=4)
-            await self.view.dock(self.mirror_sidebar, edge="left", size=SIDEBAR_SIZE, z=1)
+            await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
+            await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
             await self.view.dock(Footer(), edge="bottom")
 
             # build search results
@@ -244,26 +275,33 @@ class TPBSearch(App):
     async def handle_button_pressed(self, message: ButtonPressed) -> None:
 
         # Play on 'p'
-        if message.sender.key == 'p':
+        if message.sender.key == 'p' and isinstance(message.sender, SearchResult):
             command = self.config.data.command_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
             await self.shutdown_and_run(command.format(message.sender.data['magnet']))
 
+        # Show files on 'f'
+        elif message.sender.key == 'f' and isinstance(message.sender, SearchResult):
+            file_names = self.client.filenames(message.sender.data['id'])
+            self.files_sidebar.update_data(file_names)
+            self.action_toggle_files_sidebar()
+
     def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
         """Called when show_mirror_bar changes."""
-        self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -SIDEBAR_SIZE)
+        self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -MIRROR_SIDEBAR_SIZE)
 
     def action_toggle_mirror_sidebar(self) -> None:
         """Called when user hits 'b' key."""
         if not self.show_mirror_bar: self.mirror_sidebar.get_response_time()
         if self.show_files_bar: self.show_files_bar = False
         self.show_mirror_bar = not self.show_mirror_bar
-        
+
     def watch_show_files_bar(self, show_files_bar: bool) -> None:
         """Called when show_files_bar changes."""
-        self.files_sidebar.animate("layout_offset_x", 0 if show_files_bar else SIDEBAR_SIZE)
+        self.files_sidebar.animate("layout_offset_x", 0 if show_files_bar else FILE_SIDEBAR_SIZE)
 
     def action_toggle_files_sidebar(self) -> None:
         """Called when user hits 'b' key."""
+        if self.files_sidebar.data is None: return None
         if self.show_mirror_bar: self.show_mirror_bar = False
         self.show_files_bar = not self.show_files_bar
 
