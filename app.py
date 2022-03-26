@@ -18,6 +18,7 @@ from textual.widget import Widget, Reactive
 from textual_inputs import TextInput
 from ck_widgets_lv import ListViewUo
 
+from pyfiglet import Figlet
 import subprocess
 import pyperclip
 import json
@@ -65,6 +66,36 @@ class Configuration(object):
     def __update(self) -> None:
         with open(self.path, 'w') as f:
             json.dump(self.data, f, indent=4)
+
+
+class TitleWidget(Widget, can_focus=True):
+    mouse_over: Reactive[bool] = Reactive(False)
+
+    def __init__(self, *, name: str | None = None, height: int | None = None) -> None:
+        super().__init__(name=name)
+        self.height = height
+
+    def __rich_repr__(self) -> rich.repr.Result:
+        yield "name", self.name
+        yield "mouse_over", self.mouse_over, False
+
+    def render(self) -> RenderableType:
+        return Align(
+            f"[magenta]{self.generate_title()}[/]", vertical='middle', align='center', pad=False
+        )
+
+    def generate_title(self, figlet_font='shadow'):
+        return Text(
+            Figlet(figlet_font).renderText('{}'.format(self.name)),
+            no_wrap=True,
+            overflow='crop',
+        )
+
+    async def on_enter(self, event: events.Enter) -> None:
+        self.mouse_over = True
+
+    async def on_leave(self, event: events.Leave) -> None:
+        self.mouse_over = False
 
 
 class SearchResult(Widget, can_focus=True):
@@ -209,6 +240,7 @@ class TPBSearch(App):
         config_path = 'conf.json'
         self.config = Configuration(config_path)
         self.client = bay.Bay(self.config.data.mirror)
+        self.display_title = 'baywatch'
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Search")
@@ -240,6 +272,9 @@ class TPBSearch(App):
         self.files_sidebar.layout_offset_x = FILE_SIDEBAR_SIZE
 
         await self.view.dock(self.text_input, edge='top', size=4)
+
+        self.title_text = TitleWidget(name=self.display_title)
+        await self.view.dock(self.title_text)
 
     async def action_submit(self):
         with self.console.status("Searching"):
