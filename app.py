@@ -214,7 +214,8 @@ class FilesSidebar(Widget):
         self.user = user
 
     def render(self) -> RenderableType:
-        if self.data is None: return self.render_empty()
+        if self.data is None or self.user is None: return self.render_empty()
+        if len(self.data) == 0 and self.user is not None: return self.render_no_files()
         user_color = '' if self.user is None else 'green' if self.user['status'] == 'vip' else 'magenta' if self.user['status'] == 'trusted' else 'white'
         return Panel(
             Align(self.build_table(), vertical='middle'),
@@ -228,6 +229,16 @@ class FilesSidebar(Widget):
         return Panel(
             "",
             border_style="red",
+        )
+
+    def render_no_files(self) -> RenderableType:
+        user_color = '' if self.user is None else 'green' if self.user['status'] == 'vip' else 'magenta' if self.user['status'] == 'trusted' else 'white'
+        return Panel(
+            Align('[red]File list not available[/]', vertical='middle', align='center'),
+            title='Files',
+            border_style="blue",
+            subtitle=f"uploaded by [{user_color}]{self.user['username']}[/]" if self.user is not None else None,
+            subtitle_align='right'
         )
 
     def update_data(self, files_data, user) -> None:

@@ -87,6 +87,10 @@ class Bay():
                 r['name'] = r['name'][0]
                 r['size'] = self.__filesize_readable(r['size'][0])
             # r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}&so={}'.format(init_data['info_hash'], r['name'], i) # 'so=' not handled by clients?
+
+        if len(results) == 1 and results[0]['size'] == '0.0 B':
+            return []
+
         return results
 
     def description(self, id_no):
