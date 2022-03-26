@@ -69,6 +69,10 @@ class Bay():
 
         return results
 
+    def browse(self, category):
+        query = 'category:{}'.format(self.__category_map(category))
+        return self.search(query)
+
     def filenames(self, id_no):
         """Return filename and filesize data for listing."""
 
