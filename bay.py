@@ -11,19 +11,20 @@ MIRROR = 'https://tpb23.ukpass.co'
 
 class Bay():
 
-    def __init__(self, default_mirror=None):
+    def __init__(self, default_mirror=None, timeout=5):
         self.mirror_list_url = 'https://proxy-bay.app/list.txt'
+        self.timeout = timeout
         self.available_mirrors = self.getMirrorList()
 
         if default_mirror is None:
             self.mirror = self.updateMirror()
         else:
             self.mirror = default_mirror
-            mirror_status = requests.get(self.mirror)
+            mirror_status = requests.get(self.mirror, timeout=self.timeout)
             if not mirror_status.ok: self.mirror = self.updateMirror()
 
     def getMirrorList(self):
-        list_response = requests.get(self.mirror_list_url)
+        list_response = requests.get(self.mirror_list_url, timeout=self.timeout)
         if not list_response.ok:
             print('unable to connect to {} : status code {}'.format(self.mirror_list_url, list_response.status_code))
             return None
@@ -36,7 +37,7 @@ class Bay():
 
     def getActiveMirrorResponse(self):
         """Return time in seconds (to the millisecond)."""
-        return '{0:.3f}'.format(requests.get(self.mirror).elapsed.microseconds / 1000000)
+        return '{0:.3f}'.format(requests.get(self.mirror, timeout=self.timeout).elapsed.microseconds / 1000000)
 
     def updateMirror(self, update_list=True):
         response_times = self.getMirrorResponses(update_list=update_list)
@@ -72,7 +73,7 @@ class Bay():
             'q': query,
             'cat': tpb_categories.short[category] if category in tpb_categories.short else tpb_categories.categories[category],
         }
-        response = requests.get(url, params=query)
+        response = requests.get(url, params=query, timeout=self.timeout)
         results = response.json()
 
         if results[0]['name'] == 'No results returned' and results[0]['id'] == '0':
@@ -84,7 +85,7 @@ class Bay():
 
     def filenames(self, id_no):
         url = '{}/apibay/f.php'.format(self.mirror)
-        response = requests.get(url, params={'id': id_no})
+        response = requests.get(url, params={'id': id_no}, timeout=self.timeout)
         results = response.json()
         for i,r in enumerate(results):
             try:
@@ -98,7 +99,7 @@ class Bay():
 
     def description(self, id_no):
         url = '{}/apibay/t.php'.format(self.mirror)
-        response = requests.get(url, params={'id': id_no})
+        response = requests.get(url, params={'id': id_no}, timeout=self.timeout)
         results = response.json()
         return results['descr']
 
