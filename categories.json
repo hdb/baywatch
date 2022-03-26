@@ -1,4 +1,4 @@
-categories = {
+{
     "All": 0,
     "Applications": 300,
     "Applications/Android": 306,
@@ -49,10 +49,5 @@ categories = {
     "Video/Movies DVDR": 202,
     "Video/Music videos": 203,
     "Video/Other": 299,
-    "Video/TV shows": 205,
-}
-
-short = {
-    'tv': 205,
-    'movies': 201,
+    "Video/TV shows": 205
 }

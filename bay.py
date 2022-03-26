@@ -5,9 +5,9 @@ from datetime import datetime
 import sys
 import json
 
-import tpb_categories
-
 MIRROR = 'https://tpb23.ukpass.co'
+CATEGORIES = 'categories.json'
+SHORT_CATEGORIES = 'categories_short.json'
 
 class Bay():
 
@@ -15,6 +15,10 @@ class Bay():
         self.mirror_list_url = 'https://proxy-bay.app/list.txt'
         self.timeout = timeout
         self.available_mirrors = self.getMirrorList()
+        with open(CATEGORIES, 'r') as c:
+            self.categories = json.load(c)
+        with open(SHORT_CATEGORIES, 'r') as sc:
+            self.categories_short = json.load(sc)
 
         if default_mirror is None:
             self.mirror = self.updateMirror()
@@ -58,7 +62,7 @@ class Bay():
             r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}'.format(r['info_hash'], r['name']).replace(' ', '%20')
             r['added'] = datetime.strftime(datetime.fromtimestamp(int(r['added'])),'%Y-%m-%d %H:%M')
             r['num_files'] = r['num_files'] if int(r['num_files']) > 0 else '1'
-            r['category_name'] = self.__get_key(int(r['category']), tpb_categories.categories)
+            r['category_name'] = self.__get_key(int(r['category']), self.categories)
 
         return results
 
@@ -67,11 +71,25 @@ class Bay():
             if val == value:
                 return key
 
+    def __category_map(self, cat):
+        if cat in self.categories_short:
+            return self.categories_short[cat]
+
+        categories_no_case = {k.lower(): v for k,v in self.categories.items()}
+        video_categories = {k.split('/')[-1]: v for k,v in categories_no_case.items() if str(v).startswith('2')}
+        cat = cat.lower()
+        if cat in video_categories:
+            return video_categories[cat]
+        elif cat in categories_no_case:
+            return categories_no_case[cat]
+        else:
+            return 0
+
     def search(self, query, category='All'):
         url = '{}/apibay/q.php'.format(self.mirror)
         query = {
             'q': query,
-            'cat': tpb_categories.short[category] if category in tpb_categories.short else tpb_categories.categories[category],
+            'cat': self.__category_map(category),
         }
         response = requests.get(url, params=query, timeout=self.timeout)
         results = response.json()
@@ -108,7 +126,7 @@ def main():
     from pprint import pprint
 
     bay = Bay(MIRROR)
-    results = bay.search(sys.argv[1])
+    results = bay.search(sys.argv[1], sys.argv[2])
     pprint(results)
 
 if __name__ == '__main__':
