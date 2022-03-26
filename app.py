@@ -207,17 +207,21 @@ class MirrorSidebar(Widget):
         return self.client
 
 class FilesSidebar(Widget):
-    def __init__(self, *, data: dict | None = None, name: str | None = None, height: int | None = None) -> None:
+    def __init__(self, *, data: dict | None = None, user: dict | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
         self.height = height
         self.data = data
+        self.user = user
 
     def render(self) -> RenderableType:
         if self.data is None: return self.render_empty()
+        user_color = '' if self.user is None else 'green' if self.user['status'] == 'vip' else 'magenta' if self.user['status'] == 'trusted' else 'white'
         return Panel(
             Align(self.build_table(), vertical='middle'),
             border_style="blue",
             title='Files',
+            subtitle=f"uploaded by [{user_color}]{self.user['username']}[/]" if self.user is not None else None,
+            subtitle_align='right'
         )
 
     def render_empty(self) -> RenderableType:
@@ -226,8 +230,9 @@ class FilesSidebar(Widget):
             border_style="red",
         )
 
-    def update_data(self, data) -> None:
-        self.data = data
+    def update_data(self, files_data, user) -> None:
+        self.data = files_data
+        self.user = user
 
     def build_table(self) -> Table:
         table = Table('[blue]#', '[blue]Filename', '[blue]Size', box=None, show_lines=True, min_width=FILE_SIDEBAR_SIZE)
@@ -338,7 +343,8 @@ class Baywatch(App):
         # Show files on 'f'
         elif message.sender.key == 'f' and isinstance(message.sender, SearchResult):
             file_names = self.client.filenames(message.sender.data['id'])
-            self.files_sidebar.update_data(file_names)
+            user = {'username': message.sender.data['username'], 'status': message.sender.data['status']}
+            self.files_sidebar.update_data(file_names, user)
             self.action_toggle_files_sidebar()
 
         elif message.sender.key == 'focus' and isinstance(message.sender, SearchResult):
