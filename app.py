@@ -12,8 +12,9 @@ from rich.table import Table
 
 from textual import events
 from textual.app import App
-from textual.widgets import ButtonPressed, Footer, Placeholder
+from textual.widgets import ButtonPressed, Footer
 from textual.widget import Widget, Reactive
+from textual.message import Message
 
 from textual_inputs import TextInput
 from ck_widgets_lv import ListViewUo
@@ -105,10 +106,11 @@ class SearchResult(Widget, can_focus=True):
     style: Reactive[str] = Reactive("")
     height: Reactive[int | None] = Reactive(None)
 
-    def __init__(self, *, data: dict | None = None, name: str | None = None, height: int | None = None) -> None:
+    def __init__(self, *, data: dict | None = None, idx: int | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
         self.height = height
         self.data = data
+        self.idx = idx
 
     def __rich_repr__(self) -> rich.repr.Result:
         yield "name", self.name
@@ -134,6 +136,8 @@ class SearchResult(Widget, can_focus=True):
 
     async def on_focus(self, event: events.Focus) -> None:
         self.has_focus = True
+        self.key = 'focus'
+        await self.emit(ButtonPressed(self))
 
     async def on_blur(self, event: events.Blur) -> None:
         self.has_focus = False
@@ -146,7 +150,6 @@ class SearchResult(Widget, can_focus=True):
 
     async def on_key(self, event: events.Key) -> None:
         self.key = event.key
-        logging.info(str(event))
         if event.key == 'f':
             event.prevent_default().stop()
             await self.emit(ButtonPressed(self))
@@ -251,13 +254,17 @@ class TPBSearch(App):
         await self.bind("c", "pass", "Copy link")
         await self.bind("q", "quit", "Quit")
 
+        await self.bind("escape", "reset_focus", show=False)
+        await self.bind("ctrl+i", "next_tab_index", show=False)
+        await self.bind("shift+tab", "previous_tab_index", show=False)
+
     show_mirror_bar = Reactive(False)
     show_files_bar = Reactive(False)
 
     async def on_mount(self, event: events.Mount) -> None:
         """Create a grid with auto-arranging cells."""
-        self.text_input = TextInput(
-            name="code",
+        self.search_bar = TextInput(
+            name="search_bar",
             title="Pirate Search",
         )
 
@@ -271,15 +278,18 @@ class TPBSearch(App):
         await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
         self.files_sidebar.layout_offset_x = FILE_SIDEBAR_SIZE
 
-        await self.view.dock(self.text_input, edge='top', size=4)
+        await self.view.dock(self.search_bar, edge='top', size=4)
 
         self.title_text = TitleWidget(name=self.display_title)
         await self.view.dock(self.title_text)
 
+        self.tab_index = ['search_bar', 'title_text']
+        self.current_index = -1
+
     async def action_submit(self):
         with self.console.status("Searching"):
             #search
-            search_term = self.text_input.value
+            search_term = self.search_bar.value
             results = self.client.search(search_term)
 
             # clear widgets
@@ -287,13 +297,23 @@ class TPBSearch(App):
             self.view.widgets.clear()
 
             # re-add widgets
-            await self.view.dock(self.text_input, edge='top', size=4)
+            await self.view.dock(self.search_bar, edge='top', size=4)
             await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
             await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
             await self.view.dock(Footer(), edge="bottom")
 
             # build search results
-            await self.view.dock(ListViewUo([SearchResult(data=r) for r in results]))
+            self.search_results = ListViewUo([SearchResult(data=r, idx=i) for i, r in enumerate(results)])
+            await self.view.dock(self.search_results)
+
+            self.build_tab_index()
+
+    def build_tab_index(self):
+        tab_index = ['search_bar']
+        if hasattr(self, 'search_results'):
+            tab_index += ['search_results[{}]'.format(i) for i in range(len(self.search_results.widgets_list))]
+        self.tab_index = tab_index
+        self.current_index = 0
 
     async def action_refresh_mirror(self) -> None:
         if self.show_mirror_bar:
@@ -321,6 +341,9 @@ class TPBSearch(App):
             self.files_sidebar.update_data(file_names)
             self.action_toggle_files_sidebar()
 
+        elif message.sender.key == 'focus' and isinstance(message.sender, SearchResult):
+            await self.handle_searchresult_on_focus(message)
+
     def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
         """Called when show_mirror_bar changes."""
         self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -MIRROR_SIDEBAR_SIZE)
@@ -341,9 +364,46 @@ class TPBSearch(App):
         if self.show_mirror_bar: self.show_mirror_bar = False
         self.show_files_bar = not self.show_files_bar
 
+    async def action_next_tab_index(self) -> None:
+        """Changes the focus to the next widget"""
+
+        self.current_index += 1 if self.current_index < len(self.tab_index) - 1 else 0
+        idx = self.tab_index[self.current_index]
+        if idx.startswith('search_results'):
+            await self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])].focus()
+        else:
+            await getattr(self, idx).focus()
+
+
+    async def action_previous_tab_index(self) -> None:
+        """Changes the focus to the previous widget"""
+
+        self.current_index -= 1 if self.current_index > 0 else len(self.tab_index) - 1
+        idx = self.tab_index[self.current_index]
+        if idx.startswith('search_results'):
+            await self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])].focus()
+        else:
+            await getattr(self, idx).focus()
+
+    async def action_reset_focus(self) -> None:
+        """Removes focus from any widget"""
+
+        self.current_index = -1
+        await self.set_focus(None)
+
+    async def handle_input_on_focus(self, message: Message) -> None:
+        """Update current index when search bar is focused"""
+
+        self.current_index = self.tab_index.index(message.sender.name)
+
+    async def handle_searchresult_on_focus(self, message: ButtonPressed) -> None:
+        """Update current index when search result is focused"""
+
+        self.current_index = message.sender.idx+1
+
     async def shutdown_and_run(self, command: str, detach: bool = False):
-        command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
         logging.info('running {}'.format(command))
+        command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
         subprocess.run(command, shell=True)
         await self.shutdown()
 
