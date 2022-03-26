@@ -237,7 +237,7 @@ class FilesSidebar(Widget):
         return table
 
 
-class TPBSearch(App):
+class Baywatch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         config_path = 'conf.json'
@@ -265,7 +265,7 @@ class TPBSearch(App):
         """Create a grid with auto-arranging cells."""
         self.search_bar = TextInput(
             name="search_bar",
-            title="Pirate Search",
+            title="Search",
         )
 
         await self.view.dock(Footer(), edge="bottom")
@@ -408,7 +408,7 @@ class TPBSearch(App):
         await self.shutdown()
 
 def main():
-    TPBSearch.run()
+    Baywatch.run()
 
 if __name__ == '__main__':
     main()
