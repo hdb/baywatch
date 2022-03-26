@@ -198,11 +198,11 @@ class MirrorSidebar(Widget):
         )
 
     def get_response_time(self) -> None:
-        self.response_time = self.client.getActiveMirrorResponse()
+        self.response_time = self.client.get_active_mirror_response()
 
     async def update_mirror(self) -> bay.Bay:
         with self.console.status('Getting mirrors'):
-            self.client.updateMirror()
+            self.client.update_mirror()
             self.get_response_time()
         return self.client
 
