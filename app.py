@@ -258,7 +258,7 @@ class Baywatch(App):
         super().__init__(*args, **kwargs)
         config_path = 'conf.json'
         self.config = Configuration(config_path)
-        self.client = bay.Bay(self.config.data.mirror)
+        self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent)
         self.display_title = 'baywatch'
 
     async def on_load(self, event: events.Load):

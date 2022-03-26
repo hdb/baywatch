@@ -1,5 +1,6 @@
 {
     "mirror": "https://tpb23.ukpass.co",
     "command": "peerflix '{}' --mpv -r -d -t",
-    "command_multifile": "peerflix '{}' --mpv -r -d -t -l"
+    "command_multifile": "peerflix '{}' --mpv -r -d -t -l",
+    "user_agent": "baywatch"
 }

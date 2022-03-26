@@ -11,9 +11,10 @@ SHORT_CATEGORIES = 'categories_short.json'
 
 class Bay():
 
-    def __init__(self, default_mirror=None, timeout=5):
+    def __init__(self, default_mirror=None, default_timeout=5, user_agent='bay'):
         self.mirror_list_url = 'https://proxy-bay.app/list.txt'
-        self.timeout = timeout
+        self.timeout = default_timeout
+        self.headers = {'User-Agent': user_agent}
         self.available_mirrors = self.get_mirror_list()
         with open(CATEGORIES, 'r') as c:
             self.categories = json.load(c)
@@ -24,13 +25,13 @@ class Bay():
             self.mirror = self.update_mirror()
         else:
             self.mirror = default_mirror
-            mirror_status = requests.get(self.mirror, timeout=self.timeout)
+            mirror_status = self.__requests_get(self.mirror)
             if not mirror_status.ok: self.mirror = self.update_mirror()
 
     def get_mirror_list(self):
         """Return list of mirrors from published proxy-bay list."""
 
-        list_response = requests.get(self.mirror_list_url, timeout=self.timeout)
+        list_response = self.__requests_get(self.mirror_list_url)
         if not list_response.ok:
             print('unable to connect to {} : status code {}'.format(self.mirror_list_url, list_response.status_code))
             return None
@@ -40,12 +41,12 @@ class Bay():
         """Get response times from all mirrors (raw microseconds)."""
 
         if update_list: self.available_mirrors = self.get_mirror_list()
-        response_times = {m: requests.get(m).elapsed for m in self.available_mirrors}
+        response_times = {m: self.__requests_get(m).elapsed for m in self.available_mirrors}
         return dict(sorted(response_times.items(), key=lambda t: t[1]))
 
     def get_active_mirror_response(self):
         """Return response time of current mirror in seconds (to the millisecond)."""
-        return '{0:.3f}'.format(requests.get(self.mirror, timeout=self.timeout).elapsed.microseconds / 1000000)
+        return '{0:.3f}'.format(self.__requests_get(self.mirror).elapsed.microseconds / 1000000)
 
     def update_mirror(self, update_list=True):
         """Get response times from all mirrors and make fasted mirror active."""
@@ -59,7 +60,7 @@ class Bay():
             'q': query,
             'cat': self.__category_map(category),
         }
-        response = requests.get(url, params=query, timeout=self.timeout)
+        response = self.__requests_get(url, params=query)
         results = response.json()
 
         if results[0]['name'] == 'No results returned' and results[0]['id'] == '0':
@@ -77,7 +78,7 @@ class Bay():
         """Return filename and filesize data for listing."""
 
         url = '{}/apibay/f.php'.format(self.mirror)
-        response = requests.get(url, params={'id': id_no}, timeout=self.timeout)
+        response = self.__requests_get(url, params={'id': id_no})
         results = response.json()
         for i,r in enumerate(results):
             try:
@@ -97,9 +98,14 @@ class Bay():
         """Return user-provided description for listing."""
 
         url = '{}/apibay/t.php'.format(self.mirror)
-        response = requests.get(url, params={'id': id_no}, timeout=self.timeout)
+        response = self.__requests_get(url, params={'id': id_no})
         results = response.json()
         return results['descr']
+    
+    def __requests_get(self, url, params=None, timeout=None, headers=None):
+        timeout = self.timeout if timeout is None else timeout
+        headers = self.headers if headers is None else headers
+        return requests.get(url, params=params, timeout=timeout, headers=headers)
 
     def __category_map(self, cat):
         """Mapping category or abbreviated category to ID."""
