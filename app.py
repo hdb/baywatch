@@ -46,15 +46,16 @@ class Dict(dict):
 class Configuration(object):
     """JSON configuration object"""
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str, live=True) -> None:
         self.path = file_path
         with open(self.path, 'r') as f:
             self.data = Dict(json.load(f))
+        self.live = live
 
     def add(self, key: str, value: str) -> bool:
         try:
             self.data[key] = value
-            self.__update()
+            if self.live: self.__update()
             return True
         except:
             return False
@@ -62,7 +63,7 @@ class Configuration(object):
     def delete(self, key: str) -> bool:
         try:
             del self.data[key]
-            self.__update()
+            if self.live: self.__update()
             return True
         except:
             return False
@@ -70,6 +71,9 @@ class Configuration(object):
     def __update(self) -> None:
         with open(self.path, 'w') as f:
             json.dump(self.data, f, indent=4)
+
+    def write(self):
+        self.__update()
 
 
 class TitleWidget(Widget, can_focus=True):
