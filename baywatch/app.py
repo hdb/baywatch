@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 
 from baywatch import bay
+from baywatch.config_control import ConfigUpdateForm, Configuration
 
 import rich
 from rich.panel import Panel
@@ -23,10 +24,10 @@ from pyfiglet import Figlet
 import subprocess
 from transmission_rpc import Client as Transmission
 import pyperclip
-import json
 import logging
 import asyncio
 import os
+import argparse
 
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
@@ -35,47 +36,6 @@ MIRROR_SIDEBAR_SIZE = 35
 FILE_SIDEBAR_SIZE = 80
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
-
-
-class Dict(dict):
-    """dot.notation access to dictionary attributes"""
-
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
-
-class Configuration(object):
-    """JSON configuration object"""
-
-    def __init__(self, file_path: str, live=True) -> None:
-        self.path = file_path
-        with open(self.path, 'r') as f:
-            self.data = Dict(json.load(f))
-        self.live = live
-
-    def add(self, key: str, value: str) -> bool:
-        try:
-            self.data[key] = value
-            if self.live: self.__update()
-            return True
-        except:
-            return False
-
-    def delete(self, key: str) -> bool:
-        try:
-            del self.data[key]
-            if self.live: self.__update()
-            return True
-        except:
-            return False
-
-    def __update(self) -> None:
-        with open(self.path, 'w') as f:
-            json.dump(self.data, f, indent=4)
-
-    def write(self):
-        self.__update()
 
 
 class TitleWidget(Widget, can_focus=True):
@@ -501,8 +461,17 @@ class Baywatch(App):
         subprocess.run(command, shell=True)
         await self.shutdown()
 
+def parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", help="configure settings", action="store_true")
+    return parser.parse_args()
+
 def main():
-    Baywatch.run()
+    args = parse()
+    if args.config:
+        ConfigUpdateForm.run()
+    else:
+        Baywatch.run()
 
 if __name__ == '__main__':
     main()
