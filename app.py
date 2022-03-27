@@ -24,6 +24,7 @@ import subprocess
 import pyperclip
 import json
 import logging
+import asyncio
 
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
@@ -267,7 +268,7 @@ class Baywatch(App):
         await self.bind("f", "toggle_files_sidebar", "Files info")
         await self.bind("r", "refresh_mirror", "Refresh mirror", show=False)
         await self.bind("p", "pass", "Play")
-        await self.bind("c", "pass", "Copy link")
+        await self.bind("c", "copy_link", "Copy link")
         await self.bind("q", "quit", "Quit")
 
         await self.bind("escape", "reset_focus", show=False)
@@ -284,7 +285,8 @@ class Baywatch(App):
             title="Search",
         )
 
-        await self.view.dock(Footer(), edge="bottom")
+        self.footer = Footer()
+        await self.view.dock(self.footer, edge="bottom")
 
         self.mirror_sidebar = MirrorSidebar(name="mirror", client=self.client)
         await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
@@ -316,7 +318,7 @@ class Baywatch(App):
             await self.view.dock(self.search_bar, edge='top', size=4)
             await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
             await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
-            await self.view.dock(Footer(), edge="bottom")
+            await self.view.dock(self.footer, edge="bottom")
 
             # build search results
             self.search_results = ListViewUo([SearchResult(data=r, idx=i) for i, r in enumerate(results)])
@@ -339,6 +341,18 @@ class Baywatch(App):
 
     async def action_pass(self) -> None:
         return None
+
+    async def action_copy_link(self) -> None:
+        if type(self.focused) == SearchResult:
+            await self.highlight_footer_key('c')
+
+    async def highlight_footer_key(self, key) -> None:
+        self.footer.highlight_key = key
+        await self.footer.call_later(self.unhighlight_footer_key)
+
+    async def unhighlight_footer_key(self) -> None:
+        await asyncio.sleep(.3)
+        self.footer.highlight_key = None
 
     async def on_shutdown_request(self, event) -> None:
         await self.client.close()
