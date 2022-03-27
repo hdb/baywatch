@@ -21,10 +21,12 @@ from ck_widgets_lv import ListViewUo
 
 from pyfiglet import Figlet
 import subprocess
+from transmission_rpc import Client as Transmission
 import pyperclip
 import json
 import logging
 import asyncio
+import os
 
 
 logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
@@ -157,6 +159,9 @@ class SearchResult(Widget, can_focus=True):
         elif event.key == 'p':
             event.prevent_default().stop()
             await self.emit(ButtonPressed(self))
+        elif event.key == 'd':
+            event.prevent_default().stop()
+            await self.emit(ButtonPressed(self))
         elif event.key == 'c':
             self.copy_link()
 
@@ -261,6 +266,7 @@ class Baywatch(App):
         self.config = Configuration(config_path)
         self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent)
         self.display_title = 'baywatch'
+        self.transmission_client = None
 
     async def on_load(self, event: events.Load):
         await self.bind("enter", "submit", "Search")
@@ -268,6 +274,7 @@ class Baywatch(App):
         await self.bind("f", "toggle_files_sidebar", "Files info")
         await self.bind("r", "refresh_mirror", "Refresh mirror", show=False)
         await self.bind("p", "pass", "Play")
+        await self.bind("d", "pass", "Download")
         await self.bind("c", "copy_link", "Copy link")
         await self.bind("q", "quit", "Quit")
 
@@ -333,6 +340,36 @@ class Baywatch(App):
         self.tab_index = tab_index
         self.current_index = 0
 
+    async def add_transmission_client(self) -> bool:
+        try:
+            self.transmission_client = Transmission(
+                username=self.config.data.transmission['username'],
+                password=self.config.data.transmission['password'],
+                host=self.config.data.transmission['host'],
+                port=self.config.data.transmission['port'],
+                # path=os.path.abspath(self.config.data.transmission['path']),
+            )
+            return True
+        except Exception as e:
+            logging.info(e)
+            if self.config.data.transmission['try_open']:
+                try:
+                    subprocess.run('{} >/dev/null 2>&1 &'.format(self.config.data.transmission['command']), shell=True)
+                    await asyncio.sleep(1)
+                    self.transmission_client = Transmission(
+                        username=self.config.data.transmission['username'],
+                        password=self.config.data.transmission['password'],
+                        host=self.config.data.transmission['host'],
+                        port=self.config.data.transmission['port'],
+                        # path=os.path.abspath(self.config.data.transmission['path']),
+                    )
+                    return True
+                except Exception as e:
+                    logging.info(e)
+                    return False
+            else:
+                return False
+
     async def action_refresh_mirror(self) -> None:
         if self.show_mirror_bar:
             self.client = await self.mirror_sidebar.update_mirror()
@@ -374,8 +411,24 @@ class Baywatch(App):
             self.files_sidebar.update_data(file_names, user)
             self.action_toggle_files_sidebar()
 
+        # Download on 'd'
+        elif message.sender.key == 'd' and isinstance(message.sender, SearchResult):
+            if self.transmission_client is None:
+                transmission_added = await self.add_transmission_client()
+                logging.info(self.transmission_client)
+                if not transmission_added:
+                    #TODO add failure notification if transmission settings not configured correctly / transmission is not on
+                    return None
+            await self.highlight_footer_key('d')
+            await self.download(message.sender.data['magnet'])
+
+        # Triggered on widget focus
         elif message.sender.key == 'focus' and isinstance(message.sender, SearchResult):
             await self.handle_searchresult_on_focus(message)
+
+    async def download(self, magnet: str) -> None:
+        download_dir = os.path.abspath(os.path.expanduser(self.config.data.transmission['download_dir']))
+        self.transmission_client.add_torrent(magnet, download_dir=download_dir)
 
     def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
         """Called when show_mirror_bar changes."""
