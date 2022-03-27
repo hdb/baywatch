@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-import bay
+from baywatch import bay
 
 import rich
 from rich.panel import Panel
@@ -33,6 +33,8 @@ logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(mess
 
 MIRROR_SIDEBAR_SIZE = 35
 FILE_SIDEBAR_SIZE = 80
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
 
 
 class Dict(dict):
@@ -266,8 +268,7 @@ class FilesSidebar(Widget):
 class Baywatch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        config_path = 'conf.json'
-        self.config = Configuration(config_path)
+        self.config = Configuration(CONFIG_PATH)
         self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent)
         self.display_title = 'baywatch'
         self.transmission_client = None

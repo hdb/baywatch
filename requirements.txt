@@ -1,4 +1,4 @@
-requests==2.27.1
+requests>=2.27.1
 textual==0.1.17
 textual_inputs==0.2.5
 git+https://github.com/Cvaniak/TextualListViewUnofficial.git

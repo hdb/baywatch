@@ -2,12 +2,11 @@
 
 import requests
 from datetime import datetime
-import sys
 import json
+import os
 
-MIRROR = 'https://tpb23.ukpass.co'
-CATEGORIES = 'categories.json'
-SHORT_CATEGORIES = 'categories_short.json'
+CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories.json')
+SHORT_CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories_short.json')
 
 class Bay():
 
@@ -150,13 +149,3 @@ class Bay():
         for key, value in source_dict.items():
             if val == value:
                 return key
-
-def main():
-    from pprint import pprint
-
-    bay = Bay(MIRROR)
-    results = bay.search(sys.argv[1], sys.argv[2])
-    pprint(results)
-
-if __name__ == '__main__':
-    main()
