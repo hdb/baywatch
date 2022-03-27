@@ -7,6 +7,7 @@ import os
 
 CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories.json')
 SHORT_CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories_short.json')
+MIRRORS = os.path.join(os.path.dirname(__file__), 'data/mirrors.txt')
 
 class Bay():
 
@@ -27,13 +28,17 @@ class Bay():
             mirror_status = self.__requests_get(self.mirror)
             if not mirror_status.ok: self.mirror = self.update_mirror()
 
-    def get_mirror_list(self):
-        """Return list of mirrors from published proxy-bay list."""
+    def get_mirror_list(self, local=False):
+        """Return list of mirrors from published proxy-bay list. Uses local list if 'local' is True or if unable to reach proxy-bay."""
+
+        if local:
+            with open(MIRRORS, 'r') as f:
+                return f.read().splitlines()
 
         list_response = self.__requests_get(self.mirror_list_url)
         if not list_response.ok:
-            print('unable to connect to {} : status code {}'.format(self.mirror_list_url, list_response.status_code))
-            return None
+            with open(MIRRORS, 'r') as f:
+                return f.splitlines()
         return list_response.text.splitlines()[3:]
 
     def get_mirror_responses(self, update_list=True):
@@ -100,7 +105,7 @@ class Bay():
         response = self.__requests_get(url, params={'id': id_no})
         results = response.json()
         return results['descr']
-    
+
     def __requests_get(self, url, params=None, timeout=None, headers=None):
         timeout = self.timeout if timeout is None else timeout
         headers = self.headers if headers is None else headers

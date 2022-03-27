@@ -16,7 +16,7 @@ setup(
     url="https://github.com/hdb/baywatch",
     packages = ['baywatch'],
     package_data = {
-        'baywatch': ['data/*.json']
+        'baywatch': ['data/*.json', 'data/*.txt']
     },
     scripts=['bin/baywatch'],
     install_requires = [
