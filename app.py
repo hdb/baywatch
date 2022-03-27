@@ -400,21 +400,24 @@ class Baywatch(App):
     async def action_next_tab_index(self) -> None:
         """Changes the focus to the next widget"""
 
-        self.current_index += 1 if self.current_index < len(self.tab_index) - 1 else 0
-        idx = self.tab_index[self.current_index]
-        if idx.startswith('search_results'):
-            await self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])].focus()
-        else:
-            await getattr(self, idx).focus()
-
+        if self.show_mirror_bar or self.show_files_bar: return None
+        self.current_index += 1 if self.current_index < (len(self.tab_index) - 1) else -1
+        await self.assign_tab_focus()
 
     async def action_previous_tab_index(self) -> None:
         """Changes the focus to the previous widget"""
 
+        if self.show_mirror_bar or self.show_files_bar: return None
         self.current_index -= 1 if self.current_index > 0 else len(self.tab_index) - 1
+        await self.assign_tab_focus()
+
+    async def assign_tab_focus(self) -> None:
         idx = self.tab_index[self.current_index]
         if idx.startswith('search_results'):
-            await self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])].focus()
+            widget = self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])]
+            await widget.focus()
+            if not widget.visible:
+                self.search_results.page_down() # TODO
         else:
             await getattr(self, idx).focus()
 
