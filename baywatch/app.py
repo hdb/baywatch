@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Any
 
-from baywatch import bay
+from baywatch.bay import Bay
 from baywatch.config_control import ConfigUpdateForm, Configuration
 from baywatch.version import __version__
 
@@ -133,7 +132,7 @@ class SearchResult(Widget, can_focus=True):
 
 class MirrorSidebar(Widget):
 
-    def __init__(self, *, client: bay.Bay | None = None, name: str | None = None, height: int | None = None) -> None:
+    def __init__(self, *, client: Bay | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
         self.height = height
         self.client = client
@@ -169,7 +168,7 @@ class MirrorSidebar(Widget):
     def get_response_time(self) -> None:
         self.response_time = self.client.get_active_mirror_response()
 
-    async def update_mirror(self) -> bay.Bay:
+    async def update_mirror(self) -> Bay:
         with self.console.status('Getting mirrors'):
             self.client.update_mirror()
             self.get_response_time()
@@ -226,7 +225,7 @@ class Baywatch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = Configuration(CONFIG_PATH)
-        self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent.format(__version__))
+        self.client = Bay(self.config.data.mirror, user_agent=self.config.data.user_agent.format(__version__))
         self.display_title = 'baywatch'
         self.transmission_client = None
 
