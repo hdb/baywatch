@@ -31,6 +31,7 @@ setup(
     license='MIT',
     classifiers=(
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+        "Operating System :: Unix",
+        "Topic :: Communications :: File Sharing",
     ),
 )
