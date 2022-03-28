@@ -6,7 +6,7 @@ with open("readme.md", "r") as fh:
 exec(open('baywatch/version.py').read())
 
 setup(
-    name = 'baywatch',
+    name = 'bay-watch',
     version = __version__,
     description = 'todo',
     long_description=long_description,

@@ -17,7 +17,7 @@ pip install git+https://github.com/Cvaniak/TextualListViewUnofficial.git@52ea0f2
 npm install -g peerflix
 
 # install via pip
-pip install baywatch
+pip install bay-watch
 ```
 
 ### Transmission Install (optional)
