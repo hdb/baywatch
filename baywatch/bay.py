@@ -5,13 +5,15 @@ from datetime import datetime
 import json
 import os
 
+from baywatch.version import __version__
+
 CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories.json')
 SHORT_CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories_short.json')
 MIRRORS = os.path.join(os.path.dirname(__file__), 'data/mirrors.txt')
 
 class Bay():
 
-    def __init__(self, default_mirror=None, default_timeout=5, user_agent='bay'):
+    def __init__(self, default_mirror=None, default_timeout=5, user_agent='bay-v{}'.format(__version__)):
         self.mirror_list_url = 'https://proxy-bay.app/list.txt'
         self.timeout = default_timeout
         self.headers = {'User-Agent': user_agent}

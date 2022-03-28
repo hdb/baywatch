@@ -3,6 +3,7 @@ from typing import Any
 
 from baywatch import bay
 from baywatch.config_control import ConfigUpdateForm, Configuration
+from baywatch.version import __version__
 
 import rich
 from rich.panel import Panel
@@ -225,7 +226,7 @@ class Baywatch(App):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = Configuration(CONFIG_PATH)
-        self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent)
+        self.client = bay.Bay(self.config.data.mirror, user_agent=self.config.data.user_agent.format(__version__))
         self.display_title = 'baywatch'
         self.transmission_client = None
 
