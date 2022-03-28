@@ -1,12 +1,6 @@
-```txt
- |                                |        |
- __ \   _` | |   |\ \  \   / _` | __|  __| __ \
- |   | (   | |   | \ \  \ / (   | |   (    | | |
-_.__/ \__,_|\__, |  \_/\_/ \__,_|\__|\___|_| |_|
-            ____/
-```
+# baywatch
 
-baywatch is a [Textual](https://github.com/Textualize/textual)-based TUI for The Pirate Bay that uses [Peerflix](https://github.com/mafintosh/peerflix) to stream torrents and [Transmission](https://transmissionbt.com/) to download them
+[baywatch](https://github.com/hdb/baywatch) is a TUI for the Pirate Bay built using [Textual](https://github.com/Textualize/textual). It uses [Peerflix](https://github.com/mafintosh/peerflix) to stream torrents and [Transmission](https://transmissionbt.com/) to download.
 
 ## Install
 
@@ -24,6 +18,9 @@ pip install bay-watch
 
 [https://transmissionbt.com/download/](https://transmissionbt.com/download/)
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/481202.svg)](https://asciinema.org/a/481202)
 
 ## Usage
 
@@ -33,7 +30,7 @@ Launch baywatch
 baywatch
 ```
 
-Open configuration editor
+To open the configuration editor:
 
 ```bash
 baywatch -c
