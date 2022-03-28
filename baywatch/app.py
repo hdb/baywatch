@@ -16,9 +16,7 @@ from textual.app import App
 from textual.widgets import ButtonPressed, Footer
 from textual.widget import Widget, Reactive
 from textual.message import Message
-
 from textual_inputs import TextInput
-from ck_widgets_lv import ListViewUo
 
 from pyfiglet import Figlet
 import subprocess
@@ -27,6 +25,13 @@ import pyperclip
 import asyncio
 import os
 import argparse
+
+try:
+    from ck_widgets_lv import ListViewUo
+except:
+    print('ck_widgets.ListViewUo is a required dependency not included in pypi install\n')
+    print('install using pip:\n\n\tpip install git+https://github.com/Cvaniak/TextualListViewUnofficial.git\n')
+    exit()
 
 
 MIRROR_SIDEBAR_SIZE = 35
