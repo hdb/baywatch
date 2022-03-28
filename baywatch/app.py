@@ -24,17 +24,13 @@ from pyfiglet import Figlet
 import subprocess
 from transmission_rpc import Client as Transmission
 import pyperclip
-import logging
 import asyncio
 import os
 import argparse
 
 
-logging.basicConfig(filename='app.log', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
-
 MIRROR_SIDEBAR_SIZE = 35
 FILE_SIDEBAR_SIZE = 80
-
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
 
 
@@ -280,7 +276,9 @@ class Baywatch(App):
         with self.console.status("Searching"):
             #search
             search_term = self.search_bar.value
+            self.log(f'searching "{search_term}"')
             results = self.client.search(search_term)
+            self.log(f'{len(results)} found for "{search_term}"')
 
             # clear widgets
             self.view.layout.docks.clear()
@@ -312,12 +310,12 @@ class Baywatch(App):
                 password=self.config.data.transmission['password'],
                 host=self.config.data.transmission['host'],
                 port=self.config.data.transmission['port'],
-                # path=os.path.abspath(self.config.data.transmission['path']),
             )
             return True
         except Exception as e:
-            logging.info(e)
+            self.log(e)
             if self.config.data.transmission['try_open']:
+                self.log('trying to open {}'.format(self.config.data.transmission['command']))
                 try:
                     subprocess.run('{} >/dev/null 2>&1 &'.format(self.config.data.transmission['command']), shell=True)
                     await asyncio.sleep(1)
@@ -326,11 +324,11 @@ class Baywatch(App):
                         password=self.config.data.transmission['password'],
                         host=self.config.data.transmission['host'],
                         port=self.config.data.transmission['port'],
-                        # path=os.path.abspath(self.config.data.transmission['path']),
                     )
                     return True
                 except Exception as e:
-                    logging.info(e)
+                    self.log('could not open {}'.format(self.config.data.transmission['command']))
+                    self.log(e)
                     return False
             else:
                 return False
@@ -339,7 +337,7 @@ class Baywatch(App):
         if self.show_mirror_bar:
             self.client = await self.mirror_sidebar.update_mirror()
             self.config.add('mirror', self.client.mirror)
-            logging.info('mirror updated to {}'.format(self.client.mirror))
+            self.log('mirror updated to {}'.format(self.client.mirror))
 
     async def action_pass(self) -> None:
         return None
@@ -364,6 +362,7 @@ class Baywatch(App):
 
         # Play on 'p'
         if message.sender.key == 'p' and isinstance(message.sender, SearchResult):
+            self.log(f"playing {message.sender.data['id']}: {message.sender.data['name']}")
             command = self.config.data.command_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
             if '{}' not in command:
                 command = '{} \'{}\''.format(command,'{}')
@@ -371,19 +370,23 @@ class Baywatch(App):
 
         # Show files on 'f'
         elif message.sender.key == 'f' and isinstance(message.sender, SearchResult):
+            self.log(f"showing files for {message.sender.data['id']}: {message.sender.data['name']}")
             file_names = self.client.filenames(message.sender.data['id'])
             user = {'username': message.sender.data['username'], 'status': message.sender.data['status']}
             self.files_sidebar.update_data(file_names, user)
+            self.log(file_names)
+            self.log(user)
             self.action_toggle_files_sidebar()
 
         # Download on 'd'
         elif message.sender.key == 'd' and isinstance(message.sender, SearchResult):
             if self.transmission_client is None:
                 transmission_added = await self.add_transmission_client()
-                logging.info(self.transmission_client)
                 if not transmission_added:
-                    #TODO add failure notification if transmission settings not configured correctly / transmission is not on
+                    #TODO add failure notification if transmission settings not configured correctly
+                    self.log(f"unable to download torrent {message.sender.data['id']}: {message.sender.data['name']}")
                     return None
+            self.log(f"downloading {message.sender.data['id']}: {message.sender.data['name']}")
             await self.highlight_footer_key('d')
             await self.download(message.sender.data['magnet'])
 
@@ -456,7 +459,7 @@ class Baywatch(App):
         self.current_index = message.sender.idx+1
 
     async def shutdown_and_run(self, command: str, detach: bool = False):
-        logging.info('running {}'.format(command))
+        self.log('running {}'.format(command))
         command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
         subprocess.run(command, shell=True)
         await self.shutdown()
@@ -464,14 +467,15 @@ class Baywatch(App):
 def parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="configure settings", action="store_true")
+    parser.add_argument("-l", "--log", help=".log file to log actions", nargs='?', default=None)
     return parser.parse_args()
 
 def main():
     args = parse()
     if args.config:
-        ConfigUpdateForm.run()
+        ConfigUpdateForm.run(title='baywatch config', log=args.log)
     else:
-        Baywatch.run()
+        Baywatch.run(title='baywatch', log=args.log)
 
 if __name__ == '__main__':
     main()
