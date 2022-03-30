@@ -285,20 +285,21 @@ class Baywatch(App):
             results = self.client.search(search_term)
             self.log(f'{len(results)} found for "{search_term}"')
 
+            # build search results
+            self.search_results = ListViewUo([SearchResult(data=r, idx=i) for i, r in enumerate(results)])
+
             # clear widgets
             self.view.layout.docks.clear()
             self.view.widgets.clear()
 
             # re-add widgets
-            await self.view.dock(self.search_bar, edge='top', size=4)
             await self.view.dock(self.mirror_sidebar, edge="left", size=MIRROR_SIDEBAR_SIZE, z=1)
             await self.view.dock(self.files_sidebar, edge="right", size=FILE_SIDEBAR_SIZE, z=2)
+            await self.view.dock(self.search_bar, edge='top', size=4)
             await self.view.dock(self.footer, edge="bottom")
-
-            # build search results
-            self.search_results = ListViewUo([SearchResult(data=r, idx=i) for i, r in enumerate(results)])
             await self.view.dock(self.search_results)
 
+            # build tab index
             self.build_tab_index()
 
     def build_tab_index(self):
