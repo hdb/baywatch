@@ -164,7 +164,7 @@ class ConfigUpdateForm(App):
         )
 
 def main():
-    ConfigUpdateForm.run(title="baywatch config")
+    ConfigUpdateForm.run(title="config editor")
 
 if __name__ == "__main__":
     main()

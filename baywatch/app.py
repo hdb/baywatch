@@ -369,7 +369,7 @@ class Baywatch(App):
         # Play on 'p'
         if message.sender.key == 'p' and isinstance(message.sender, SearchResult):
             self.log(f"playing {message.sender.data['id']}: {message.sender.data['name']}")
-            command = self.config.data.command_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
+            command = self.config.data.play_multifile if int(message.sender.data['num_files']) > 1 else self.config.data.command
             if '{}' not in command:
                 command = '{} \'{}\''.format(command,'{}')
             await self.shutdown_and_run(command.format(message.sender.data['magnet']))
