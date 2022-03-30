@@ -8,8 +8,6 @@
         "password": null,
         "host": "localhost",
         "port": 9091,
-        "path": "/transmission/",
-        "download_dir": "~/Downloads/",
         "try_open": true,
         "command": "transmission-gtk"
     }

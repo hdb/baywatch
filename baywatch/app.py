@@ -401,8 +401,7 @@ class Baywatch(App):
             await self.handle_searchresult_on_focus(message)
 
     async def download(self, magnet: str) -> None:
-        download_dir = os.path.abspath(os.path.expanduser(self.config.data.transmission['download_dir']))
-        self.transmission_client.add_torrent(magnet, download_dir=download_dir)
+        self.transmission_client.add_torrent(magnet)
 
     def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
         """Called when show_mirror_bar changes."""
