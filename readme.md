@@ -44,7 +44,7 @@ baywatch -l out.log
 
 ### Streaming Media
 
-By default, pressing `p` will use [mpv](https://mpv.io) to handle peerflix streams and open a file selection dialog when multiple files are present in the torrent. To change this, for instance, to vlc and default to playing all files (e.g., like an album), open the config editor using `baywatch -c` and set `Play` to:
+`play` uses [mpv](https://mpv.io) to handle peerflix streams and open a file selection dialog when multiple files are present in the torrent. To change this, for instance, to vlc and default to playing all files (e.g., like an album), open the config editor using `baywatch -c` and set `Play` to:
 
 ```bash
 peerflix '{}' --vlc
@@ -60,7 +60,7 @@ See [peerflix documentation](https://github.com/mafintosh/peerflix#usage) for mo
 
 ### Transmission
 
-On `d`, baywatch interfaces with Transmission to download torrents. If using the Transmission app, the app must be open in order to complete the download - by default, baywatch will try to open `transmission-gtk` if it is unable to find an open transmission instance. baywatch will also work with other Transmission interfaces or transmission-daemon if they are running.
+On `download`, baywatch attempts to connect to Transmission app or daemon. baywatch will try to open `transmission-gtk` if it is unable to find an running transmission instance. This can be turned off or changed to another transmission interface by setting the `Command (Transmission)` or `Try Open (Transmission)` variables.
 
 ## Disclaimer
 
