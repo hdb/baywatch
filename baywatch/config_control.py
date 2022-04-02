@@ -11,6 +11,7 @@ from textual_inputs import TextInput
 
 import os
 import json
+import asyncio
 
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
@@ -78,13 +79,15 @@ class ConfigUpdateForm(App):
         await self.bind("s", "save_config", "Save")
         await self.bind("ctrl+s", "save_config", show=False)
         await self.bind("q", "quit", "Quit")
+        await self.bind("ctrl+q", "quit", show=False)
         await self.bind("escape", "reset_focus", show=False)
         await self.bind("ctrl+i", "next_tab_index", show=False)
         await self.bind("shift+tab", "previous_tab_index", show=False)
 
     async def on_mount(self) -> None:
 
-        await self.view.dock(Footer(), edge="bottom")
+        self.footer = Footer()
+        await self.view.dock(self.footer, edge="bottom")
 
         self.inputs = {f: TextInput(name=f, title=self.title_case(f), placeholder=v) for f,v in self.config.data.items() if type(self.config.data[f]) != dict}
         for f in self.config.data:
@@ -125,6 +128,14 @@ class ConfigUpdateForm(App):
             )
         )
 
+    async def highlight_footer_key(self, key) -> None:
+        self.footer.highlight_key = key
+        await self.footer.call_later(self.unhighlight_footer_key)
+
+    async def unhighlight_footer_key(self) -> None:
+        await asyncio.sleep(.3)
+        self.footer.highlight_key = None
+
     async def action_reset_focus(self) -> None:
         self.current_index = -1
         await self.header.focus()
@@ -162,6 +173,7 @@ class ConfigUpdateForm(App):
                 "[green bold]Configuration Saved", align='center'
             )
         )
+        await self.highlight_footer_key('s')
 
 def main():
     ConfigUpdateForm.run(title="config editor")

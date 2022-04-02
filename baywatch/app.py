@@ -243,6 +243,7 @@ class Baywatch(App):
         await self.bind("d", "pass", "Download")
         await self.bind("c", "copy_link", "Copy link")
         await self.bind("q", "quit", "Quit")
+        await self.bind("ctrl+q", "quit", show=False)
 
         await self.bind("escape", "reset_focus", show=False)
         await self.bind("ctrl+i", "next_tab_index", show=False)
