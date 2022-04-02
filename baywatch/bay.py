@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import requests
+import urllib.parse
 from datetime import datetime
 import json
 import os
@@ -12,14 +13,17 @@ from baywatch.version import __version__
 CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories.json')
 SHORT_CATEGORIES = os.path.join(os.path.dirname(__file__), 'data/categories_short.json')
 MIRRORS = os.path.join(os.path.dirname(__file__), 'data/mirrors.txt')
+TRACKERS = os.path.join(os.path.dirname(__file__), 'data/trackers.txt')
 
 class Bay():
 
     def __init__(self, default_mirror: str | None = None, default_timeout: int = 5, user_agent: str = 'bay-v{}'.format(__version__)) -> None:
+
         self.mirror_list_url = 'https://proxy-bay.app/list.txt'
+
         self.timeout = default_timeout
         self.headers = {'User-Agent': user_agent}
-        self.available_mirrors = self.get_mirror_list()
+
         with open(CATEGORIES, 'r') as c:
             self.categories = json.load(c)
         with open(SHORT_CATEGORIES, 'r') as sc:
@@ -31,6 +35,8 @@ class Bay():
             self.mirror = default_mirror
             mirror_status = self.__requests_get(self.mirror)
             if not mirror_status.ok: self.mirror = self.update_mirror()
+
+        self.announce = self.build_announce_list()
 
     def get_mirror_list(self, local: bool = False) -> list[str]:
         """Return list of mirrors from published proxy-bay list. Uses local list if 'local' is True or if unable to reach proxy-bay."""
@@ -56,10 +62,17 @@ class Bay():
         """Return response time of current mirror in seconds (to the millisecond)."""
         return '{0:.3f}'.format(self.__requests_get(self.mirror).elapsed.microseconds / 1000000)
 
-    def update_mirror(self, update_list: bool = True) ->str:
+    def update_mirror(self, update_list: bool = True) -> str:
         """Get response times from all mirrors and make fasted mirror active."""
         response_times = self.get_mirror_responses(update_list=update_list)
         return min(response_times, key=response_times.get)
+
+    def build_announce_list(self) -> str:
+        """Build announce list"""
+
+        with open(TRACKERS, 'r') as f:
+            trackers = f.read().splitlines()
+        return '&'.join([f'tr={urllib.parse.quote_plus(t)}' for t in trackers if len(t)>0])
 
     def search(self, query: str, category: str ='All') -> dict:
         """Return search query."""
@@ -146,7 +159,7 @@ class Bay():
 
         for r in results:
             r['size'] = self.__filesize_readable(r['size'])
-            r['magnet'] = 'magnet:?xt=urn:btih:{}&dn={}'.format(r['info_hash'], r['name']).replace(' ', '%20')
+            r['magnet'] = f"magnet:?xt=urn:btih:{r['info_hash']}&dn={urllib.parse.quote_plus(r['name'])}&{self.announce}"
             r['added'] = datetime.strftime(datetime.fromtimestamp(int(r['added'])),'%Y-%m-%d %H:%M')
             r['num_files'] = r['num_files'] if int(r['num_files']) > 0 else '1'
             r['category_name'] = self.__get_key(int(r['category']), self.categories)
