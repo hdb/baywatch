@@ -360,10 +360,6 @@ class Baywatch(App):
         await asyncio.sleep(.3)
         self.footer.highlight_key = None
 
-    async def on_shutdown_request(self, event) -> None:
-        await self.client.close()
-        await self.close_messages()
-
     async def handle_button_pressed(self, message: ButtonPressed) -> None:
 
         # Play on 'p'
