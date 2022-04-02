@@ -53,7 +53,7 @@ class TitleWidget(Widget, can_focus=True):
             f"[magenta]{self.generate_title()}[/]", vertical='middle', align='center', pad=False
         )
 
-    def generate_title(self, figlet_font='shadow'):
+    def generate_title(self, figlet_font: str = 'shadow') -> None:
         return Text(
             Figlet(figlet_font).renderText('{}'.format(self.name)),
             no_wrap=True,
@@ -194,7 +194,7 @@ class FilesSidebar(Widget):
             subtitle_align='right'
         )
 
-    def update_data(self, files_data, user) -> None:
+    def update_data(self, files_data: list | None, user: dict | None) -> None:
         self.data = files_data
         self.user = user
 
@@ -207,14 +207,14 @@ class FilesSidebar(Widget):
 
 
 class Baywatch(App):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.config = Configuration(CONFIG_PATH)
         self.client = Bay(self.config.data.mirror, user_agent=self.config.data.user_agent.format(__version__))
         self.display_title = 'baywatch'
         self.transmission_client = None
 
-    async def on_load(self, event: events.Load):
+    async def on_load(self, event: events.Load) -> None:
         await self.bind("enter", "submit", "Search")
         await self.bind("m", "toggle_mirror_sidebar", "Mirror info")
         await self.bind("f", "toggle_files_sidebar", "Files info")
@@ -258,7 +258,7 @@ class Baywatch(App):
         self.tab_index = ['search_bar', 'title_text']
         self.current_index = -1
 
-    async def action_submit(self):
+    async def action_submit(self) -> None:
         with self.console.status("Searching"):
             #search
             search_term = self.search_bar.value
@@ -283,7 +283,7 @@ class Baywatch(App):
             # build tab index
             self.build_tab_index()
 
-    def build_tab_index(self):
+    def build_tab_index(self) -> None:
         tab_index = ['search_bar']
         if hasattr(self, 'search_results'):
             tab_index += ['search_results[{}]'.format(i) for i in range(len(self.search_results.widgets_list))]
@@ -333,7 +333,7 @@ class Baywatch(App):
         if type(self.focused) == SearchResult:
             await self.highlight_footer_key('c')
 
-    async def highlight_footer_key(self, key) -> None:
+    async def highlight_footer_key(self, key: str) -> None:
         self.footer.highlight_key = key
         await self.footer.call_later(self.unhighlight_footer_key)
 
@@ -440,13 +440,13 @@ class Baywatch(App):
 
         self.current_index = message.sender.idx+1
 
-    async def shutdown_and_run(self, command: str, detach: bool = False):
+    async def shutdown_and_run(self, command: str, detach: bool = False) -> None:
         self.log('running {}'.format(command))
         command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
         subprocess.run(command, shell=True)
         await self.shutdown()
 
-def parse():
+def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="configure settings", action="store_true")
     parser.add_argument("-l", "--log", help=".log file to log actions", nargs='?', default=None)
