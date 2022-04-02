@@ -78,7 +78,7 @@ class SearchResult(Widget, can_focus=True):
     def render(self) -> RenderableType:
         if self.data is None: return self.render_empty()
         return Panel(
-            f"[white]{self.data['category_name']}[/]\n[cyan]{self.data['magnet']}[/]",
+            Text.assemble((self.data['category_name'], "white"), "\n", (self.data['magnet'], 'cyan'), no_wrap=True, overflow='ellipsis'),
             title=f"[bold blue]{self.data['name']}[/]",
             title_align="left",
             border_style="magenta" if not self.has_focus else "yellow",
