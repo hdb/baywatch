@@ -20,7 +20,7 @@ pip install bay-watch
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/483154.svg)](https://asciinema.org/a/483154)
+[![asciicast](https://asciinema.org/a/483656.svg)](https://asciinema.org/a/483656)
 
 ## Usage
 
