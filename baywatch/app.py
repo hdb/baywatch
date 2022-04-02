@@ -40,7 +40,6 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
 
 
 class TitleWidget(Widget, can_focus=True):
-    mouse_over: Reactive[bool] = Reactive(False)
 
     def __init__(self, *, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
@@ -48,7 +47,6 @@ class TitleWidget(Widget, can_focus=True):
 
     def __rich_repr__(self) -> rich.repr.Result:
         yield "name", self.name
-        yield "mouse_over", self.mouse_over, False
 
     def render(self) -> RenderableType:
         return Align(
@@ -62,19 +60,10 @@ class TitleWidget(Widget, can_focus=True):
             overflow='crop',
         )
 
-    async def on_enter(self, event: events.Enter) -> None:
-        self.mouse_over = True
-
-    async def on_leave(self, event: events.Leave) -> None:
-        self.mouse_over = False
-
 
 class SearchResult(Widget, can_focus=True):
 
     has_focus: Reactive[bool] = Reactive(False)
-    mouse_over: Reactive[bool] = Reactive(False)
-    style: Reactive[str] = Reactive("")
-    height: Reactive[int | None] = Reactive(None)
 
     def __init__(self, *, data: dict | None = None, idx: int | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
@@ -85,7 +74,6 @@ class SearchResult(Widget, can_focus=True):
     def __rich_repr__(self) -> rich.repr.Result:
         yield "name", self.name
         yield "has_focus", self.has_focus, False
-        yield "mouse_over", self.mouse_over, False
 
     def render(self) -> RenderableType:
         if self.data is None: return self.render_empty()
@@ -112,12 +100,6 @@ class SearchResult(Widget, can_focus=True):
     async def on_blur(self, event: events.Blur) -> None:
         self.has_focus = False
 
-    async def on_enter(self, event: events.Enter) -> None:
-        self.mouse_over = True
-
-    async def on_leave(self, event: events.Leave) -> None:
-        self.mouse_over = False
-
     async def on_key(self, event: events.Key) -> None:
         self.key = event.key
         if event.key == 'f':
@@ -130,10 +112,8 @@ class SearchResult(Widget, can_focus=True):
             event.prevent_default().stop()
             await self.emit(ButtonPressed(self))
         elif event.key == 'c':
-            self.copy_link()
+            pyperclip.copy(self.data['magnet'])
 
-    def copy_link(self) -> None: # on "c"
-        pyperclip.copy(self.data['magnet'])
 
 class MirrorSidebar(Widget):
 
