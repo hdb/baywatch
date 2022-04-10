@@ -110,17 +110,20 @@ class ConfigUpdateForm(App):
 
     async def action_next_tab_index(self) -> None:
         """Changes the focus to the next form field"""
+
         if self.current_index < len(self.tab_index) - 1:
             self.current_index += 1
             await self.inputs[self.tab_index[self.current_index]].focus()
 
     async def action_previous_tab_index(self) -> None:
         """Changes the focus to the previous form field"""
+
         if self.current_index > 0:
             self.current_index -= 1
             await self.inputs[self.tab_index[self.current_index]].focus()
 
     async def action_submit(self) -> None:
+        """Register unsaved changes in header"""
 
         await self.header.update(
             Align(
@@ -129,6 +132,8 @@ class ConfigUpdateForm(App):
         )
 
     async def highlight_footer_key(self, key) -> None:
+        """Force highlight footer key for visual feedback"""
+
         self.footer.highlight_key = key
         await self.footer.call_later(self.unhighlight_footer_key)
 
@@ -137,13 +142,19 @@ class ConfigUpdateForm(App):
         self.footer.highlight_key = None
 
     async def action_reset_focus(self) -> None:
+        """Removes focus from any widget"""
+
         self.current_index = -1
         await self.header.focus()
 
     async def handle_input_on_focus(self, message: Message) -> None:
+        """Update current index when element is focused"""
+
         self.current_index = self.tab_index.index(message.sender.name)
 
     async def handle_form_change(self, message: Message) -> None:
+        """Register configuration changes without saving data"""
+
         if message.sender.value == 'none' or message.sender.value == 'null' or message.sender.value == '':
             value = None
         elif message.sender.value.lower() == 'true':
@@ -166,7 +177,9 @@ class ConfigUpdateForm(App):
     def title_case(input_string: str) -> str:
         return input_string.replace('_',' ').replace('-',' ').title()
 
-    async def action_save_config(self):
+    async def action_save_config(self) -> None:
+        """Write changes to config file"""
+
         self.config.write()
         await self.header.update(
             Align(

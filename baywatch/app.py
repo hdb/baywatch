@@ -40,6 +40,7 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'data/conf.json')
 
 
 class TitleWidget(Widget, can_focus=True):
+    """Widget displays title on open"""
 
     def __init__(self, *, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
@@ -62,6 +63,7 @@ class TitleWidget(Widget, can_focus=True):
 
 
 class SearchResult(Widget, can_focus=True):
+    """Search result item; handles key press actions on focus"""
 
     has_focus: Reactive[bool] = Reactive(False)
 
@@ -116,6 +118,7 @@ class SearchResult(Widget, can_focus=True):
 
 
 class MirrorSidebar(Widget):
+    """Display site mirror connection and response time"""
 
     def __init__(self, *, client: Bay | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
@@ -125,6 +128,8 @@ class MirrorSidebar(Widget):
         self.footer = self.build_footer()
 
     def build_footer(self) -> Text:
+        """Replicate footer for sidebar for actions only available when visible"""
+
         footer = Text(
             no_wrap=True,
             overflow="ellipsis",
@@ -160,6 +165,8 @@ class MirrorSidebar(Widget):
         return self.client
 
 class FilesSidebar(Widget):
+    """Display details of search result item"""
+
     def __init__(self, *, data: dict | None = None, user: dict | None = None, name: str | None = None, height: int | None = None) -> None:
         super().__init__(name=name)
         self.height = height
@@ -195,6 +202,8 @@ class FilesSidebar(Widget):
         )
 
     def update_data(self, files_data: list | None, user: dict | None) -> None:
+        """Receive file and upload user data"""
+
         self.data = files_data
         self.user = user
 
@@ -207,6 +216,8 @@ class FilesSidebar(Widget):
 
 
 class Baywatch(App):
+    """Main app"""
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.config = Configuration(CONFIG_PATH)
@@ -215,6 +226,8 @@ class Baywatch(App):
         self.transmission_client = None
 
     async def on_load(self, event: events.Load) -> None:
+        """Register keybindings + dummy keybindings for widget events"""
+
         await self.bind("enter", "submit", "Search")
         await self.bind("m", "toggle_mirror_sidebar", "Mirror info")
         await self.bind("f", "toggle_files_sidebar", "Files info")
@@ -233,7 +246,8 @@ class Baywatch(App):
     show_files_bar = Reactive(False)
 
     async def on_mount(self, event: events.Mount) -> None:
-        """Create a grid with auto-arranging cells."""
+        """Initialize widgets"""
+
         self.search_bar = TextInput(
             name="search_bar",
             title="Search",
@@ -259,6 +273,8 @@ class Baywatch(App):
         self.current_index = -1
 
     async def action_submit(self) -> None:
+        """Search bar submit"""
+
         with self.console.status("Searching"):
             #search
             search_term = self.search_bar.value
@@ -284,6 +300,8 @@ class Baywatch(App):
             self.build_tab_index()
 
     def build_tab_index(self) -> None:
+        """Tab-index search bar and search result widgets"""
+
         tab_index = ['search_bar']
         if hasattr(self, 'search_results'):
             tab_index += ['search_results[{}]'.format(i) for i in range(len(self.search_results.widgets_list))]
@@ -291,6 +309,8 @@ class Baywatch(App):
         self.current_index = 0
 
     async def add_transmission_client(self) -> bool:
+        """Set-up transmission connection"""
+
         try:
             self.transmission_client = Transmission(
                 username=self.config.data.transmission['username'],
@@ -321,19 +341,27 @@ class Baywatch(App):
                 return False
 
     async def action_refresh_mirror(self) -> None:
+        """Get fastest available mirror"""
+
         if self.show_mirror_bar:
             self.client = await self.mirror_sidebar.update_mirror()
             self.config.add('mirror', self.client.mirror)
             self.log('mirror updated to {}'.format(self.client.mirror))
 
     async def action_pass(self) -> None:
+        """Dummy action to render widget key events in footer"""
+
         return None
 
     async def action_copy_link(self) -> None:
+        """Copy result link to clipboard"""
+
         if type(self.focused) == SearchResult:
             await self.highlight_footer_key('c')
 
     async def highlight_footer_key(self, key: str) -> None:
+        """Force highlight footer key for visual feedback"""
+
         self.footer.highlight_key = key
         await self.footer.call_later(self.unhighlight_footer_key)
 
@@ -342,6 +370,7 @@ class Baywatch(App):
         self.footer.highlight_key = None
 
     async def handle_button_pressed(self, message: ButtonPressed) -> None:
+        """Receive events from widgets"""
 
         # Play on 'p'
         if message.sender.key == 'p' and isinstance(message.sender, SearchResult):
@@ -378,43 +407,51 @@ class Baywatch(App):
             await self.handle_searchresult_on_focus(message)
 
     async def download(self, magnet: str) -> None:
+        """Trigger transmission download"""
+
         self.transmission_client.add_torrent(magnet)
 
     def watch_show_mirror_bar(self, show_mirror_bar: bool) -> None:
-        """Called when show_mirror_bar changes."""
+        """Show/hide mirror sidebar"""
+
         self.mirror_sidebar.animate("layout_offset_x", 0 if show_mirror_bar else -MIRROR_SIDEBAR_SIZE)
 
     def action_toggle_mirror_sidebar(self) -> None:
-        """Called when user hits 'm' key."""
+        """Trigger show/hide mirror sidebar"""
+
         if not self.show_mirror_bar: self.mirror_sidebar.get_response_time()
         if self.show_files_bar: self.show_files_bar = False
         self.show_mirror_bar = not self.show_mirror_bar
 
     def watch_show_files_bar(self, show_files_bar: bool) -> None:
-        """Called when show_files_bar changes."""
+        """Show/hide files sidebar"""
+
         self.files_sidebar.animate("layout_offset_x", 0 if show_files_bar else FILE_SIDEBAR_SIZE)
 
     def action_toggle_files_sidebar(self) -> None:
-        """Called when user hits 'f' key."""
+        """Trigger show/hide files sidebar"""
+
         if self.files_sidebar.data is None: return None
         if self.show_mirror_bar: self.show_mirror_bar = False
         self.show_files_bar = not self.show_files_bar
 
     async def action_next_tab_index(self) -> None:
-        """Changes the focus to the next widget"""
+        """Change tab index to the next widget and focus"""
 
         if self.show_mirror_bar or self.show_files_bar: return None
         self.current_index += 1 if self.current_index < (len(self.tab_index) - 1) else -1
         await self.assign_tab_focus()
 
     async def action_previous_tab_index(self) -> None:
-        """Changes the focus to the previous widget"""
+        """Change tab index to the previous widget and focus"""
 
         if self.show_mirror_bar or self.show_files_bar: return None
         self.current_index -= 1 if self.current_index > 0 else len(self.tab_index) - 1
         await self.assign_tab_focus()
 
     async def assign_tab_focus(self) -> None:
+        """Set focus to current tab index"""
+
         idx = self.tab_index[self.current_index]
         if idx.startswith('search_results'):
             widget = self.search_results.widgets_list[int(idx.split('[')[1].split(']')[0])]
@@ -441,12 +478,16 @@ class Baywatch(App):
         self.current_index = message.sender.idx+1
 
     async def shutdown_and_run(self, command: str, detach: bool = False) -> None:
+        """Quit app and run command on exit"""
+
         self.log('running {}'.format(command))
         command = 'sleep 1 && {}{}'.format(command, ' &' if detach else '')
         subprocess.run(command, shell=True)
         await self.shutdown()
 
 def parse() -> argparse.Namespace:
+    """Argument parser; options for launching configuration editor or enabling logs"""
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="configure settings", action="store_true")
     parser.add_argument("-l", "--log", help=".log file to log actions", nargs='?', default=None)
