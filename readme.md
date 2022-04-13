@@ -4,12 +4,6 @@
 
 ## Install
 
-Install dependencies:
-
-```bash
-pip install git+https://github.com/Cvaniak/TextualListViewUnofficial.git@52ea0f2
-```
-
 Optionally install peerflix:
 
 ```bash
