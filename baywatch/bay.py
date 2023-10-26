@@ -55,7 +55,13 @@ class Bay():
         """Get response times from all mirrors (raw microseconds)."""
 
         if update_list: self.available_mirrors = self.get_mirror_list()
-        response_times = {m: self.__requests_get(m).elapsed for m in self.available_mirrors}
+        response_times = {}
+        for m in self.available_mirrors:
+            try:
+                response_times[m] = self.__requests_get(m).elapsed
+            except:
+                continue
+
         return dict(sorted(response_times.items(), key=lambda t: t[1]))
 
     def get_active_mirror_response(self) -> str:
