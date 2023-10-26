@@ -74,8 +74,8 @@ class SearchResult(Widget, can_focus=True):
     def render(self) -> RenderableType:
         if self.data is None: return self.render_empty()
         return Panel(
-            Text.assemble((self.data['category_name'], "white"), "\n", (self.data['magnet'], 'cyan'), no_wrap=True, overflow='ellipsis'),
-            title=f"[bold blue]{self.data['name']}[/]",
+            Text.assemble((self.data['name'], "bold white"), "\n", (self.data['magnet'], 'cyan'), no_wrap=True, overflow='ellipsis'),
+            title=f"[blue]{self.data['category_name']}[/]",
             title_align="left",
             border_style="magenta" if not self.has_focus else "yellow",
             subtitle=f"[blue]{self.data['num_files']} file{'s' if int(self.data['num_files']) > 1 else ''}[/] | [blue]{self.data['size']}[/] | [green]{self.data['seeders']}[/] | [red]{self.data['leechers']}[/]",
