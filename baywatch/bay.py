@@ -168,7 +168,8 @@ class Bay():
             r['magnet'] = f"magnet:?xt=urn:btih:{r['info_hash']}&dn={urllib.parse.quote_plus(r['name'])}&{self.announce}"
             r['added'] = datetime.strftime(datetime.fromtimestamp(int(r['added'])),'%Y-%m-%d %H:%M')
             r['num_files'] = r['num_files'] if int(r['num_files']) > 0 else '1'
-            r['category_name'] = self.__get_key(int(r['category']), self.categories)
+            category_name = self.__get_key(int(r['category']), self.categories)
+            r['category_name'] = category_name if category_name is not None else 'Unknown'
 
         return results
 
