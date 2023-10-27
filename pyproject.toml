@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bay-watch"
+version = "0.1.8"
+authors = [
+  { name = "Hudson Bailey", email = "hudsondiggsbailey@gmail.com" },
+]
+description = "TUI for TPB + Peerflix + Transmission"
+readme = "readme.md"
+license = { file = "license.md" }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Communications :: File Sharing",
+]
+dependencies = [
+    "requests >=2.27.1",
+    "textual ~=0.1.17",
+    "textual_inputs ~=0.2.5",
+    "ck-widgets ~=0.2.0",
+    "pyfiglet ~=0.8.post1",
+    "transmission-rpc ~=3.3.0",
+    "pyperclip ~=1.8.2",
+]
+
+[project.scripts]
+"baywatch" = "baywatch.app:main"
+
+[tool.setuptools.package-data]
+"baywatch" = ["data/*.json", "data/*.txt"]
+
+[project.urls]
+"Homepage" = "https://github.com/hdb/baywatch"
+"Bug Tracker" = "https://github.com/hdb/baywatch/issues"
+
