@@ -485,6 +485,7 @@ def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="configure settings", action="store_true")
     parser.add_argument("-l", "--log", help=".log file to log actions", nargs='?', default=None)
+    parser.add_argument("-v", "--version", action="version", version='%(prog)s {version}'.format(version=__version__))
     return parser.parse_args()
 
 def main():
